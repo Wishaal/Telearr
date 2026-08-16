@@ -1,7 +1,7 @@
 // main.js — app bootstrap: shell, router, polling, theme.
 import { h, mount, qs, api } from "./core.js";
 import { icon } from "./icons.js";
-import { viewDashboard, viewChannels, viewDownloads, viewActivity, viewSettings, openChannelModal, openTelegramConnect, liveActive, liveDashboard, ui } from "./views.js";
+import { viewDashboard, viewChannels, viewDownloads, viewActivity, viewSystem, viewSettings, openChannelModal, openTelegramConnect, liveActive, liveDashboard, ui } from "./views.js";
 import { initPalette, openCommandPalette } from "./palette.js";
 
 const NAV = [
@@ -9,6 +9,7 @@ const NAV = [
   { id: "channels", label: "Channels", icon: "channels", view: viewChannels },
   { id: "downloads", label: "Downloads", icon: "downloads", view: viewDownloads },
   { id: "activity", label: "Activity", icon: "activity", view: viewActivity },
+  { id: "system", label: "System", icon: "system", view: viewSystem },
   { id: "settings", label: "Settings", icon: "settings", view: viewSettings },
 ];
 const TITLE = Object.fromEntries(NAV.map((n) => [n.id, n.label]));

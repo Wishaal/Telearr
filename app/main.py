@@ -8,11 +8,11 @@ import contextlib
 
 from fastapi import FastAPI, Request, Form, Depends, HTTPException
 from fastapi.responses import (RedirectResponse, HTMLResponse, JSONResponse,
-                               Response, StreamingResponse)
+                               Response, StreamingResponse, FileResponse)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import db, auth, scanner, settings, plex, notify, arr, tmdb, tg
+from . import db, auth, scanner, settings, plex, notify, arr, tmdb, tg, system
 from .tg import get_client
 from .namer import imdb_search
 from .config import summary
@@ -165,6 +165,64 @@ async def api_status(user=Depends(auth.require_user)):
     return {"authorized": authed, "paused": settings.get_bool("paused", False),
             "disk": {"total": total, "used": used, "free": free},
             "stats": stats, "config": summary()}
+
+
+# ── system (status / tasks / backups / updates) ───────────────────────
+@app.get("/api/system/status")
+async def api_system_status(user=Depends(auth.require_user)):
+    client = get_client()
+    try:
+        authed = client.is_connected() and await client.is_user_authorized()
+    except Exception:
+        authed = False
+    return system.status(authed, scanner.is_alive())
+
+
+@app.get("/api/system/tasks")
+async def api_system_tasks(user=Depends(auth.require_user)):
+    return system.tasks()
+
+
+@app.post("/api/system/tasks/scan_all")
+async def api_system_scan_all(user=Depends(auth.require_user)):
+    client = get_client()
+    if not client.is_connected():
+        await client.connect()
+    with db.conn() as c:
+        chans = c.execute("SELECT * FROM channels WHERE enabled=1").fetchall()
+    for ch in chans:
+        scanner._spawn(scanner.scan_channel(client, ch))
+    return {"ok": True, "message": f"Scanning {len(chans)} channel(s)"}
+
+
+@app.get("/api/system/backups")
+async def api_system_backups(user=Depends(auth.require_user)):
+    return system.list_backups()
+
+
+@app.post("/api/system/backups")
+async def api_system_backup_create(user=Depends(auth.require_user)):
+    return await asyncio.to_thread(system.create_backup)
+
+
+@app.get("/api/system/backups/{name}/download")
+async def api_system_backup_download(name: str, user=Depends(auth.require_user)):
+    path = system.backup_path(name)
+    if not path:
+        raise HTTPException(404)
+    return FileResponse(path, media_type="application/zip", filename=name)
+
+
+@app.delete("/api/system/backups/{name}")
+async def api_system_backup_delete(name: str, user=Depends(auth.require_user)):
+    if not system.delete_backup(name):
+        raise HTTPException(404)
+    return {"ok": True}
+
+
+@app.get("/api/system/updates")
+async def api_system_updates(user=Depends(auth.require_user)):
+    return await system.check_updates()
 
 
 # ── channels ──────────────────────────────────────────────────────────

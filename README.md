@@ -63,6 +63,10 @@ work, and both share the same fast downloader and library layout.
   Saved Messages with the poster and an "Open in Plex" link.
 - **Installable (PWA)** — add Telearr to your phone's home screen with an app icon
   and theme color.
+- **System panel** — a Sonarr-style System area with **Status** (health checks +
+  app/host info), **Tasks** (per-channel scan schedules with next-run times),
+  **Backup** (one-click database + settings snapshots, download/restore), and
+  **Updates** (installed vs latest GitHub release).
 - **Web UI** — dashboard, channels, downloads, activity/log, and settings pages.
 - **Mobile-friendly** — bottom navigation bar and a responsive layout.
 - **Light / dark themes.**
@@ -207,13 +211,17 @@ their way.
 | --- | --- |
 | ![Channel detail](docs/screenshots/channel-drawer.png) | ![Downloads](docs/screenshots/downloads.png) |
 
-| Command palette (⌘K) | Settings |
+| System — health, tasks, backups, updates | Settings |
 | --- | --- |
-| ![Command palette](docs/screenshots/command-palette.png) | ![Settings](docs/screenshots/settings.png) |
+| ![System](docs/screenshots/system.png) | ![Settings](docs/screenshots/settings.png) |
 
-| Connect Telegram (in-app sign-in) | Mobile |
+| Command palette (⌘K) | Connect Telegram (in-app sign-in) |
 | --- | --- |
-| ![Login](docs/screenshots/login.png) | ![Mobile](docs/screenshots/mobile-dashboard.png) |
+| ![Command palette](docs/screenshots/command-palette.png) | ![Login](docs/screenshots/login.png) |
+
+| Mobile |
+| --- |
+| ![Mobile](docs/screenshots/mobile-dashboard.png) |
 
 ---
 

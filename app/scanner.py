@@ -389,3 +389,8 @@ def start_background():
         return _active
     _active = asyncio.create_task(scan_loop())
     return _active
+
+
+def is_alive() -> bool:
+    """True while the background scan loop is running (for the System panel)."""
+    return _active is not None and not _active.done()

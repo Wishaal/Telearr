@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — System panel
+- New **System** area (like Sonarr/Radarr) with four tabs:
+  - **Status** — live health checks (Telegram, scanner, disk space, download
+    queue, database integrity) plus app/host info (version, Python, platform,
+    uptime, DB size, disk, data dir).
+  - **Tasks** — per-channel scan schedules with interval, days, last-run and
+    next-run times, plus "Scan all now" and per-task run.
+  - **Backup** — one-click consistent DB+settings snapshots (SQLite online
+    backup API), listed with download/delete; keeps the latest 10.
+  - **Updates** — installed version vs the latest GitHub release, with a link to
+    the release notes.
+- New `app/system.py` module and `/api/system/*` endpoints (auth-guarded;
+  backup filenames validated against path traversal).
+
 ## Unreleased — Python 3.14 + dependency refresh
 - Runtime moved to **Python 3.14-slim**; CI now tests on 3.14 to match.
 - Bumped **cryptg** 0.5.0.post0 → 0.5.2 (ships prebuilt cp314 wheels, so the

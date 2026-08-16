@@ -347,6 +347,125 @@ export function viewActivity(ctx) {
   return h("div", { class: "stack" }, h("div", { class: "log-toolbar" }, lvlSel), pre);
 }
 
+// ── System ──
+function fmtDur(sec) {
+  sec = Math.max(0, sec | 0);
+  const d = Math.floor(sec / 86400), hh = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60);
+  if (d) return `${d}d ${hh}h`;
+  if (hh) return `${hh}h ${m}m`;
+  if (m) return `${m}m`;
+  return `${sec}s`;
+}
+function fmtWhen(ts) {
+  if (!ts) return "—";
+  const diff = Date.now() / 1000 - ts;
+  if (diff < 0) {
+    const s = -diff;
+    if (s < 60) return "in <1m";
+    if (s < 3600) return `in ${Math.round(s / 60)}m`;
+    if (s < 86400) return `in ${Math.round(s / 3600)}h`;
+    return new Date(ts * 1000).toLocaleString();
+  }
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.round(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.round(diff / 3600)}h ago`;
+  return new Date(ts * 1000).toLocaleDateString();
+}
+const infoGrid = (pairs) => h("div", { class: "info-grid" },
+  ...pairs.flatMap(([k, v]) => [h("div", { class: "info-k" }, k), h("div", { class: "info-v mono" }, String(v))]));
+
+const SYS_TABS = [["status", "Status"], ["tasks", "Tasks"], ["backup", "Backup"], ["updates", "Updates"]];
+
+export function viewSystem(ctx) {
+  const sub = ui.sysTab || "status";
+  const body = h("div", { class: "stack" }, h("div", { class: "empty" }, "Loading…"));
+  const tabs = h("div", { class: "tabs" }, ...SYS_TABS.map(([id, label]) =>
+    h("button", { class: "tab " + (sub === id ? "on" : ""), onClick: () => { ui.sysTab = id; ctx.rerender(); } }, label)));
+  ({ status: sysStatus, tasks: sysTasks, backup: sysBackup, updates: sysUpdates }[sub])(body);
+  return h("div", { class: "stack" }, tabs, body);
+}
+
+async function sysStatus(root) {
+  const s = await api("/api/system/status"); if (!s) return;
+  const badge = (ok, level) => h("span", { class: "pill " + (ok ? "s-completed" : (level === "warn" ? "s-queued" : "s-failed")) },
+    ok ? "OK" : (level === "warn" ? "Warning" : "Error"));
+  const health = card("Health",
+    h("div", { class: "sys-health" }, ...s.health.map((x) =>
+      h("div", { class: "sys-hrow" },
+        h("span", { class: "dot " + (x.ok ? "ok" : (x.level === "warn" ? "" : "bad")) }),
+        h("span", { class: "sys-hname" }, x.name),
+        h("span", { class: "sys-hmsg muted" }, x.message),
+        badge(x.ok, x.level)))));
+  const about = card("About", infoGrid([
+    ["Version", "v" + s.version],
+    ["Python", s.python],
+    ["Platform", s.platform],
+    ["Uptime", fmtDur(s.uptime_seconds)],
+    ["Channels", `${s.channels_enabled} enabled · ${s.channels} total`],
+    ["Download workers", `${s.workers} senders · ${s.max_concurrent} concurrent`],
+    ["Database", fmtBytes(s.db_size)],
+    ["Disk", `${fmtBytes(s.disk.free)} free of ${fmtBytes(s.disk.total)}`],
+    ["Data directory", s.data_dir],
+  ]));
+  mount(root, health, about);
+}
+
+async function sysTasks(root) {
+  const rows = await api("/api/system/tasks"); if (!rows) return;
+  const head = h("div", { class: "dl-controls" },
+    h("button", { class: "btn primary sm", onClick: async () => { const r = await jpost("/api/system/tasks/scan_all", {}); if (r) toast(r.message || "Scanning", "ok"); } },
+      h("span", { html: icon("scan") }), "Scan all now"),
+    h("span", { class: "muted small" }, "Each enabled channel is scanned on its own schedule."));
+  const table = h("div", { class: "data-card" }, h("table", {},
+    h("thead", {}, h("tr", {}, h("th", {}, "Task"), h("th", {}, "Interval"), h("th", {}, "Days"), h("th", {}, "Last run"), h("th", {}, "Next run"), h("th", {}, ""))),
+    h("tbody", {}, ...(rows.length ? rows.map((t) => h("tr", {},
+      h("td", {}, t.name),
+      h("td", { class: "num" }, t.interval),
+      h("td", { class: "muted" }, t.days),
+      h("td", { class: "num muted" }, fmtWhen(t.last_run)),
+      h("td", { class: "num" }, t.enabled ? fmtWhen(t.next_run) : h("span", { class: "muted" }, "disabled")),
+      h("td", { class: "actions" }, h("button", { class: "btn ghost sm", onClick: async () => { await api(`/api/channels/${t.channel_id}/scan`, { method: "POST" }); toast("Scan started", "ok"); } }, "Run"))))
+      : [h("tr", {}, h("td", { colspan: 6 }, h("div", { class: "empty" }, "No channels yet — add one to schedule scans.")))]))));
+  mount(root, head, table);
+}
+
+async function sysBackup(root) {
+  const list = (await api("/api/system/backups")) || [];
+  const head = h("div", { class: "dl-controls" },
+    h("button", { class: "btn primary sm", onClick: async () => { const r = await jpost("/api/system/backups", {}); if (r && r.name) { toast("Backup created", "ok"); sysBackup(root); } } },
+      h("span", { html: icon("disk") }), "Back up now"),
+    h("span", { class: "muted small" }, "Snapshots your database + settings. Keeps the latest 10."));
+  const table = h("div", { class: "data-card" }, h("table", {},
+    h("thead", {}, h("tr", {}, h("th", {}, "Backup"), h("th", {}, "Size"), h("th", {}, "Created"), h("th", {}, ""))),
+    h("tbody", {}, ...(list.length ? list.map((b) => h("tr", {},
+      h("td", {}, b.name),
+      h("td", { class: "num" }, fmtBytes(b.size)),
+      h("td", { class: "num muted" }, fmtWhen(b.created)),
+      h("td", { class: "actions" },
+        h("a", { class: "btn ghost sm", href: `/api/system/backups/${encodeURIComponent(b.name)}/download` }, h("span", { html: icon("external") }), "Download"),
+        h("button", { class: "btn ghost sm icon", title: "Delete backup", onClick: async () => { if (confirm("Delete this backup?")) { await api(`/api/system/backups/${encodeURIComponent(b.name)}`, { method: "DELETE" }); toast("Backup deleted", "ok"); sysBackup(root); } } }, h("span", { html: icon("trash") })))))
+      : [h("tr", {}, h("td", { colspan: 4 }, h("div", { class: "empty" }, "No backups yet.")))]))));
+  const note = card("Restore",
+    h("p", { class: "muted small", style: "margin:0;line-height:1.6" },
+      "To restore: download a backup, stop Telearr, unzip telearr.db into your data directory, and start again. Restoring replaces all channels, history, and settings."));
+  mount(root, head, table, note);
+}
+
+async function sysUpdates(root) {
+  const u = await api("/api/system/updates"); if (!u) return;
+  const status = u.up_to_date
+    ? h("div", { class: "chip" }, h("span", { html: icon("check") }), u.latest ? "You're on the latest version" : "No newer release found")
+    : h("div", { class: "chip", style: "background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)" }, h("span", { html: icon("upload") }), `Update available: v${u.latest}`);
+  mount(root, card("Updates",
+    infoGrid([
+      ["Installed", "v" + u.current],
+      ["Latest", u.latest ? "v" + u.latest : (u.error || "unknown")],
+    ]),
+    h("div", { style: "margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap" },
+      status,
+      h("a", { class: "btn ghost sm", href: u.url, target: "_blank", rel: "noopener" }, h("span", { html: icon("external") }), "Release notes"))));
+}
+
 // ── Settings ──
 export function viewSettings(ctx) {
   const root = h("div", { class: "settings-grid" }, h("div", { class: "empty" }, "Loading…"));
