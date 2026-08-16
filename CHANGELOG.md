@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — Python 3.14 + dependency refresh
+- Runtime moved to **Python 3.14-slim**; CI now tests on 3.14 to match.
+- Bumped **cryptg** 0.5.0.post0 → 0.5.2 (ships prebuilt cp314 wheels, so the
+  AES-NI backend keeps working on 3.14; still compatible with 3.13).
+- Dependency bumps: jinja2 3.1.6 (security), python-multipart 0.0.32,
+  ruff 0.16, pytest 9.1, pytest-asyncio 1.4; GitHub Actions checkout@v7 /
+  setup-python@v7.
+
 ## Unreleased — Apple-inspired redesign
 - Rebuilt the entire visual language around a precision-editorial **Apple**
   aesthetic: pale-gray/white surfaces, SF Pro typography, a single restrained
