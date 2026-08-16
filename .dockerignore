@@ -1,0 +1,10 @@
+data/
+.env
+*.bak.*
+__pycache__/
+*.pyc
+.git/
+README.md
+CHANGELOG.md
+deploy.sh
+authorize.py

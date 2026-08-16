@@ -1,0 +1,16 @@
+services:
+  telearr:
+    build: .
+    image: telearr:2.1.0
+    container_name: telearr
+    restart: unless-stopped
+    env_file: .env
+    user: "${PUID:-1000}:${PGID:-1000}"      # own new media files as wishaal, not root
+    ports:
+      - "8790:8790"                           # LAN-accessible; strong random pw + secret set in .env
+    volumes:
+      - ./data:/data                          # DB + Telegram session (persisted)
+      - /media/wishaal/MediaDrive1:/media     # library root
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }   # bounded logs (Tier 2.5)

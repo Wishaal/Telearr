@@ -1,0 +1,19 @@
+# runtime data & secrets — NEVER commit
+data/
+.env
+*.session
+*.session-journal
+logs/
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+
+# deploy/fix-script backups
+*.bak.*
+
+# local test-runner artifacts (not part of the repo)
+node_modules/
+.pytest_cache/
+new-credentials.txt

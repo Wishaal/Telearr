@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0e14">
+  <title>Telearr — Sign in</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body class="login">
+  <form class="card" method="post" action="/login">
+    <h1>◆ Telearr</h1>
+    {% if error %}<p class="err">{{ error }}</p>{% endif %}
+    <input name="username" placeholder="Username" autocomplete="username" required autofocus>
+    <input name="password" type="password" placeholder="Password" autocomplete="current-password" required>
+    <button type="submit">Sign in</button>
+  </form>
+</body>
+</html>

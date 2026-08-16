@@ -1,0 +1,10 @@
+# Pinned for reproducibility. Bump deliberately, rebuild the image, test.
+telethon==1.43.0          # MTProto client; session format stable across 1.4x
+cryptg==0.5.0.post0       # C/AES-NI backend — the big download-speed win
+fastapi==0.117.1
+uvicorn[standard]==0.32.1
+jinja2==3.1.4
+python-multipart==0.0.20  # form parsing for /login
+itsdangerous==2.2.0       # signed session cookies
+bcrypt==4.2.1
+httpx==0.28.1             # Plex refresh + webhook notifications
