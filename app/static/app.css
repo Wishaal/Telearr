@@ -108,7 +108,7 @@ a:hover { text-decoration: underline; }
 /* cards / grids */
 .card { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); }
 .card-h { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: -.01em; margin-bottom: 16px; }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp); }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp); align-items: start; }
 .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
 .stat { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--radius); padding: 20px 22px; box-shadow: var(--shadow); transition: box-shadow var(--t-base), transform var(--t-base); }
 .stat:hover { box-shadow: var(--shadow-raised); transform: translateY(-2px); }
