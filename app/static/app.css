@@ -302,3 +302,12 @@ body { background-image:
 .spark { width: 100%; height: 56px; display: block; }
 
 @media (max-width: 860px) { .ch-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; } }
+
+/* ============ v2.2: login brand + poster shimmer ============ */
+.login-brand { display: flex; align-items: center; gap: 12px; justify-content: center; }
+.login-logo { display: inline-flex; filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--accent) 45%, transparent)); }
+.login-word { font-size: 26px; font-weight: 700; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.login-word b { font-weight: 850; }
+.login-sub { text-align: center; color: var(--muted); font-size: 13px; margin: -2px 0 6px; }
+.login .card { gap: 11px; }
+.poster:not(.art-done)::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, var(--surface-2) 25%, var(--line) 37%, var(--surface-2) 63%); background-size: 400% 100%; animation: shimmer 1.3s ease infinite; }

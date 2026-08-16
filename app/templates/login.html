@@ -12,7 +12,11 @@
 </head>
 <body class="login">
   <form class="card" method="post" action="/login">
-    <h1>◆ Telearr</h1>
+    <div class="login-brand">
+      <span class="login-logo"><svg viewBox="0 0 64 64" width="40" height="40" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b93ff"/><stop offset="1" stop-color="#35c46b"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(#lg)"/><path d="M14 27 L50 15 L41 50 L32 40 L26 45 L26 36 Z" fill="#fff"/><path d="M32 40 L41 50 L32 44 Z" fill="#cfe0ff"/></svg></span>
+      <span class="login-word">Tele<b>arr</b></span>
+    </div>
+    <p class="login-sub">Bring Telegram into your ✳arr stack</p>
     {% if error %}<p class="err">{{ error }}</p>{% endif %}
     <input name="username" placeholder="Username" autocomplete="username" required autofocus>
     <input name="password" type="password" placeholder="Password" autocomplete="current-password" required>

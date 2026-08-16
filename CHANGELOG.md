@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — UI overhaul
+- Installable **PWA** (manifest + icons) with SVG favicon and gradient brand identity.
+- **Real-time SSE** live updates (stats, active downloads, speed) — no more polling lag.
+- **⌘K command palette** for navigation and actions.
+- Dashboard: **storage donut**, animated count-up stats, and a **live download-speed sparkline**.
+- Channels are now a **TMDB poster library** (server-side proxy; API key never hits the browser).
+- Branded login screen, richer empty states, poster loading shimmer, micro-interactions, per-view page titles, theme-color + safe-area for mobile.
+
 ## 2.1.0 — \*arr integration + open-source scaffolding
 Telearr can now plug into the \*arr stack, and the project has proper
 open-source project files for external contributors.

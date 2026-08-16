@@ -153,7 +153,7 @@ export function liveDashboard(ctx) {
 const _artCache = new Map();
 function loadArt(imdb, img, poster) {
   if (!imdb) return;
-  const apply = (a) => { if (a && a.poster) { img.src = a.poster; img.classList.add("loaded"); } if (a && a.backdrop) poster.dataset.backdrop = a.backdrop; };
+  const apply = (a) => { if (a && a.poster) { img.src = a.poster; img.classList.add("loaded"); } if (a && a.backdrop) poster.dataset.backdrop = a.backdrop; poster.classList.add("art-done"); };
   if (_artCache.has(imdb)) return apply(_artCache.get(imdb));
   api(`/api/art?imdb=${encodeURIComponent(imdb)}`).then((a) => { _artCache.set(imdb, a || {}); apply(a || {}); });
 }
@@ -167,6 +167,7 @@ function channelCard(c, ctx) {
     h("button", { class: `toggle ch-toggle ${c.enabled ? "on" : ""}`, title: c.enabled ? "Enabled" : "Disabled", "aria-label": "Toggle channel",
       onClick: async (e) => { e.stopPropagation(); await jpatch(`/api/channels/${c.id}`, { enabled: c.enabled ? 0 : 1 }); ctx.refresh(); } }));
   loadArt(c.imdb_id, img, poster);
+  if (!c.imdb_id) poster.classList.add("art-done");
   return h("div", { class: "ch-card" }, poster,
     h("div", { class: "ch-body" },
       h("div", { class: "ch-title", title: c.imdb_title || c.title }, c.imdb_title || c.title),
