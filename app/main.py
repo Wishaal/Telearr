@@ -426,7 +426,12 @@ async def api_notify_test(user=Depends(auth.require_user)):
 
 @app.get("/api/art")
 async def api_art(imdb: str = "", user=Depends(auth.require_user)):
-    return await tmdb.art(imdb)
+    title = ""
+    if imdb:
+        with db.conn() as c:
+            row = c.execute("SELECT imdb_title FROM channels WHERE imdb_id=? LIMIT 1", (imdb,)).fetchone()
+        title = (row["imdb_title"] if row else "") or ""
+    return await tmdb.art(imdb, title)
 
 
 @app.post("/api/integrations/tmdb/test")

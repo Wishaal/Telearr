@@ -354,7 +354,7 @@ export function viewSettings(ctx) {
 
     const tmdbOut = h("span", { class: "test-out" });
     const tmdbc = card("Artwork (TMDB)",
-      h("div", { class: "muted small", style: "margin-bottom:10px" }, "Add a free TMDB API key to show poster artwork on the Channels page. Get one at themoviedb.org → Settings → API."),
+      h("div", { class: "muted small", style: "margin-bottom:10px" }, "Posters work automatically via IMDb — no key needed. Add a free TMDB key (themoviedb.org → Settings → API) for higher-resolution artwork and backdrops."),
       row("API key" + (s.tmdb_key_set ? " (saved)" : ""), inp("set-tmdb_key", "", "password")),
       h("div", { class: "set-actions" },
         h("button", { class: "btn primary sm", onClick: async () => { const tk = root.querySelector("#set-tmdb_key").value; if (tk) await jpatch("/api/settings", { tmdb_key: tk }); toast("TMDB key saved", "ok"); } }, "Save"),
