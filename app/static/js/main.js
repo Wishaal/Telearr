@@ -156,9 +156,15 @@ buildShell();
 initPalette(getCommands);
 go(active);
 connectSSE();
-// fallback poll: refreshes channels/logs + authorized flag; re-renders live views only if SSE is down
+// fallback poll. Live views (dashboard/downloads) are driven by SSE; only re-render them
+// here if SSE has gone quiet. Static views (channels/activity/settings) are NEVER auto
+// re-rendered — that was resetting scroll/inputs. We only keep the shell status fresh.
 setInterval(async () => {
-  await fetchForView();
-  const sseAlive = Date.now() - _lastSSE < 4000;
-  if (!sseAlive || (active !== "dashboard" && active !== "downloads")) render();
+  const sseDown = Date.now() - _lastSSE > 4000;
+  if (sseDown && (active === "dashboard" || active === "downloads")) {
+    await fetchForView(); render();
+  } else {
+    const s = await api("/api/status");
+    if (s) { DATA.status = { ...(DATA.status || {}), authorized: s.authorized, disk: s.disk, stats: s.stats, paused: s.paused }; updateShell(); }
+  }
 }, 6000);
