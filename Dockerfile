@@ -1,13 +1,13 @@
 # Multi-stage: compile wheels (cryptg/bcrypt need a C toolchain) in the builder,
 # ship a slim runtime with no compiler. Runs as a non-root UID via compose `user:`.
-FROM python:3.13-slim AS builder
+FROM python:3.14-slim AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc build-essential && rm -rf /var/lib/apt/lists/*
 WORKDIR /wheels
 COPY requirements.txt .
 RUN pip wheel --wheel-dir /wheels -r requirements.txt
 
-FROM python:3.13-slim
+FROM python:3.14-slim
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
         && rm -rf /var/lib/apt/lists/*
