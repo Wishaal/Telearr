@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased — security hardening
+- **Login throttling** — eight failed attempts from one client inside five
+  minutes locks that client out for fifteen. Successful logins reset the
+  counter; existing sessions are unaffected. Failures and lockouts are logged.
+- **No username enumeration** — an unknown username now costs the same bcrypt
+  work as a wrong password, so the two cannot be told apart by timing.
+- **`Secure` session cookie** when the request arrives over TLS (directly or
+  via `X-Forwarded-Proto`), while plain-HTTP LAN deployments keep working.
+- **Security headers** on every response: a strict `Content-Security-Policy`,
+  `X-Frame-Options: DENY`, `X-Content-Type-Options`, `Referrer-Policy`,
+  `Cross-Origin-Opener-Policy`, and `Permissions-Policy`.
+- **Minimum password length raised** from 6 to 12 characters.
+- Malformed `chat_id` values return `400` instead of a `500`.
+- The admin username defaults to `admin`, and the media root and bind address
+  are configured via `TELEARR_MEDIA_ROOT` / `TELEARR_BIND_ADDR` rather than
+  being hardcoded to one machine's layout.
+
 ## 2.2.0 — Redesign, System panel & Python 3.14 (2026-08-16)
 
 ### System panel

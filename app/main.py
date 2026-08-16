@@ -52,6 +52,32 @@ app = FastAPI(title="Telearr", version=__version__, lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=os.path.join(HERE, "static")), name="static")
 
 
+# The UI is entirely first-party: templates, /static assets and inline handlers,
+# with no CDN or remote XHR. A tight CSP therefore costs nothing and shuts down
+# injected-script and clickjacking attempts.
+_CSP = ("default-src 'self'; "
+        "img-src 'self' data: https:; "        # TMDB artwork is remote
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'")
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    resp = await call_next(request)
+    resp.headers.setdefault("Content-Security-Policy", _CSP)
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("X-Frame-Options", "DENY")
+    resp.headers.setdefault("Referrer-Policy", "no-referrer")
+    resp.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+    resp.headers.setdefault("Permissions-Policy",
+                            "geolocation=(), microphone=(), camera=(), interest-cohort=()")
+    return resp
+
+
 # ── auth / pages ──────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
@@ -65,13 +91,36 @@ async def login_page(request: Request, error: str = ""):
     return templates.TemplateResponse("login.html", {"request": request, "error": error})
 
 
+def _is_secure(request: Request) -> bool:
+    """True when the browser reached us over HTTPS, directly or via a proxy."""
+    if request.url.scheme == "https":
+        return True
+    return request.headers.get("x-forwarded-proto", "").split(",")[0].strip() == "https"
+
+
 @app.post("/login")
-async def do_login(username: str = Form(...), password: str = Form(...)):
+async def do_login(request: Request, username: str = Form(...), password: str = Form(...)):
+    key = auth.client_key(request)
+
+    wait = auth.throttle_retry_after(key)
+    if wait:
+        db.log("WARN", f"Login attempt from {key} rejected — locked out for {wait}s")
+        return RedirectResponse(
+            f"/login?error=Too+many+attempts.+Try+again+in+{wait}+seconds.",
+            status_code=303)
+
     if not auth.verify(username, password):
+        auth.record_failure(key)
+        db.log("WARN", f"Failed login for '{username}' from {key}")
         return RedirectResponse("/login?error=Invalid+credentials", status_code=303)
+
+    auth.record_success(key)
     r = RedirectResponse("/", status_code=303)
+    # secure=True only when the request actually arrived over TLS, so the
+    # cookie still works for the common plain-HTTP LAN deployment.
     r.set_cookie("telearr_sess", auth.make_cookie(username),
-                 httponly=True, samesite="lax", max_age=7 * 86400)
+                 httponly=True, samesite="lax", max_age=7 * 86400,
+                 secure=_is_secure(request))
     return r
 
 
@@ -234,7 +283,10 @@ async def api_channels(user=Depends(auth.require_user)):
 
 def _normalize_chat_id(raw) -> int:
     """Accept -100… , bare channel ids, or @usernames-as-int; return -100 form."""
-    cid = int(raw)
+    try:
+        cid = int(raw)
+    except (TypeError, ValueError):
+        raise HTTPException(400, "chat_id must be numeric")
     if cid > 0 and not str(cid).startswith("100"):
         return int(f"-100{cid}")
     if cid > 0:
@@ -244,6 +296,8 @@ def _normalize_chat_id(raw) -> int:
 
 @app.post("/api/channels")
 async def api_add_channel(payload: dict, user=Depends(auth.require_user)):
+    if "chat_id" not in payload:
+        raise HTTPException(400, "chat_id is required")
     chat_id = _normalize_chat_id(payload["chat_id"])
     title = payload.get("title") or f"Channel {chat_id}"
     kind = payload.get("kind", "tv")
@@ -449,8 +503,9 @@ async def api_change_password(payload: dict, user=Depends(auth.require_user)):
     new = payload.get("new", "")
     if not auth.verify(user, current):
         raise HTTPException(400, "current password is incorrect")
-    if len(new) < 6:
-        raise HTTPException(400, "new password must be at least 6 characters")
+    if len(new) < auth.MIN_PASSWORD_LEN:
+        raise HTTPException(
+            400, f"new password must be at least {auth.MIN_PASSWORD_LEN} characters")
     auth.set_password(user, new)
     db.log("INFO", "Admin password changed")
     return {"ok": True}

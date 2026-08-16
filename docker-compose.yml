@@ -5,12 +5,14 @@ services:
     container_name: telearr
     restart: unless-stopped
     env_file: .env
-    user: "${PUID:-1000}:${PGID:-1000}"      # own new media files as wishaal, not root
+    user: "${PUID:-1000}:${PGID:-1000}"      # own new media files as you, not root
     ports:
-      - "8790:8790"                           # LAN-accessible; strong random pw + secret set in .env
+      # Bound to the host LAN address. Set TELEARR_BIND_ADDR=127.0.0.1 to keep
+      # it local-only and reach it through a reverse proxy instead.
+      - "${TELEARR_BIND_ADDR:-0.0.0.0}:8790:8790"
     volumes:
       - ./data:/data                          # DB + Telegram session (persisted)
-      - /media/wishaal/MediaDrive1:/media     # library root
+      - ${TELEARR_MEDIA_ROOT:?set TELEARR_MEDIA_ROOT in .env}:/media   # library root
     logging:
       driver: json-file
       options: { max-size: "10m", max-file: "5" }   # bounded logs (Tier 2.5)

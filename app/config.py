@@ -44,7 +44,7 @@ PROGRESS_MIN_INTERVAL = float(os.getenv("TELEARR_PROGRESS_INTERVAL", "1.0"))  # 
 BIND_HOST = os.getenv("TELEARR_BIND_HOST", "0.0.0.0")   # container-internal
 BIND_PORT = _i("TELEARR_BIND_PORT", 8790)
 SECRET_KEY = os.getenv("TELEARR_SECRET_KEY", "")
-DEFAULT_USER = os.getenv("TELEARR_ADMIN_USER", "wishaal")
+DEFAULT_USER = os.getenv("TELEARR_ADMIN_USER", "admin")
 DEFAULT_PASS = os.getenv("TELEARR_ADMIN_PASS", "")
 
 # ── Integrations (all optional) ───────────────────────────────────────

@@ -69,3 +69,78 @@ def test_app_auth_hash_check_roundtrip():
     assert auth._check("s3cret", h) is True
     assert auth._check("nope", h) is False
     assert auth._check("s3cret", "") is False
+
+
+# --------------------------------------------------------------------------
+# Login throttling — protects /login from password guessing.
+# --------------------------------------------------------------------------
+@pytest.fixture()
+def auth_mod():
+    pytest.importorskip("itsdangerous")
+    pytest.importorskip("fastapi")
+    from app import auth
+
+    # Each test starts from a clean throttle state.
+    auth._attempts.clear()
+    auth._locked_until.clear()
+    yield auth
+    auth._attempts.clear()
+    auth._locked_until.clear()
+
+
+def test_throttle_allows_attempts_below_the_limit(auth_mod):
+    for _ in range(auth_mod.MAX_ATTEMPTS - 1):
+        auth_mod.record_failure("10.0.0.1")
+    assert auth_mod.throttle_retry_after("10.0.0.1") == 0
+
+
+def test_throttle_locks_out_at_the_limit(auth_mod):
+    for _ in range(auth_mod.MAX_ATTEMPTS):
+        auth_mod.record_failure("10.0.0.2")
+    wait = auth_mod.throttle_retry_after("10.0.0.2")
+    assert wait > 0
+    assert wait <= auth_mod.LOCKOUT_SECONDS + 1
+
+
+def test_throttle_is_per_client(auth_mod):
+    for _ in range(auth_mod.MAX_ATTEMPTS):
+        auth_mod.record_failure("10.0.0.3")
+    assert auth_mod.throttle_retry_after("10.0.0.3") > 0
+    assert auth_mod.throttle_retry_after("10.0.0.4") == 0
+
+
+def test_successful_login_clears_the_counter(auth_mod):
+    for _ in range(auth_mod.MAX_ATTEMPTS - 1):
+        auth_mod.record_failure("10.0.0.5")
+    auth_mod.record_success("10.0.0.5")
+    # The earlier failures are forgotten, so the budget is whole again.
+    for _ in range(auth_mod.MAX_ATTEMPTS - 1):
+        auth_mod.record_failure("10.0.0.5")
+    assert auth_mod.throttle_retry_after("10.0.0.5") == 0
+
+
+def test_lockout_expires(auth_mod, monkeypatch):
+    for _ in range(auth_mod.MAX_ATTEMPTS):
+        auth_mod.record_failure("10.0.0.6")
+    assert auth_mod.throttle_retry_after("10.0.0.6") > 0
+
+    real = auth_mod.time.monotonic
+    monkeypatch.setattr(auth_mod.time, "monotonic",
+                        lambda: real() + auth_mod.LOCKOUT_SECONDS + 1)
+    assert auth_mod.throttle_retry_after("10.0.0.6") == 0
+
+
+def test_old_failures_fall_out_of_the_window(auth_mod, monkeypatch):
+    for _ in range(auth_mod.MAX_ATTEMPTS - 1):
+        auth_mod.record_failure("10.0.0.7")
+
+    real = auth_mod.time.monotonic
+    monkeypatch.setattr(auth_mod.time, "monotonic",
+                        lambda: real() + auth_mod.ATTEMPT_WINDOW + 1)
+    # The stale failures are discarded, so this one does not trip the lock.
+    auth_mod.record_failure("10.0.0.7")
+    assert auth_mod.throttle_retry_after("10.0.0.7") == 0
+
+
+def test_verify_rejects_unknown_user_without_raising(auth_mod, fresh_db):
+    assert auth_mod.verify("no-such-user", "whatever") is False

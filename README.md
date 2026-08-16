@@ -173,6 +173,8 @@ Telearr is configured in two complementary places.
 | Variable | Purpose | Default |
 | --- | --- | --- |
 | `TG_API_ID` / `TG_API_HASH` | Telegram API credentials | — (required) |
+| `TELEARR_MEDIA_ROOT` | Host path bind-mounted to `/media` in the container | — (required) |
+| `TELEARR_BIND_ADDR` | Host address the web UI binds to (`127.0.0.1` = local only) | `0.0.0.0` |
 | `PUID` / `PGID` | UID/GID that owns downloaded files | `1000` |
 | `TELEARR_TV_DIR` / `TELEARR_TV_DIR_4K` | TV libraries (1080p / 4K) | `/media/TvShows/…` |
 | `TELEARR_MOVIES_DIR` / `TELEARR_MOVIES_DIR_4K` | Movie libraries (1080p / 4K) | `/media/Movies/…` |
