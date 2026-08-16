@@ -44,6 +44,25 @@ work, and both share the same fast downloader and library layout.
 
 ## Features
 
+- **In-app Telegram sign-in** — connect your account from the browser: phone →
+  login code → optional 2FA password, all in a guided wizard. No terminal, no
+  `authorize.py`, no copying session strings.
+- **Pick channels from your chat list** — Telearr reads the channels/groups your
+  account already follows, so you select one from a list instead of hunting for IDs
+  in web Telegram. You can still paste a `@username`, `t.me` link, or invite link,
+  and Telearr joins it for you.
+- **Poster library** — channels render as a poster wall using TMDB art (with an
+  optional API key) and a keyless IMDb fallback, so the library looks like Plex, not
+  a spreadsheet.
+- **Hero detail drawer** — click a title for a full-bleed backdrop, synopsis,
+  rating, and its recent downloads.
+- **Real-time everything** — dashboard stats, download progress, and activity
+  stream live over Server-Sent Events; no manual refresh.
+- **Command palette (⌘K / Ctrl-K)** — jump to any page or action from the keyboard.
+- **Telegram notifications** — completed downloads are pushed to your Telegram
+  Saved Messages with the poster and an "Open in Plex" link.
+- **Installable (PWA)** — add Telearr to your phone's home screen with an app icon
+  and theme color.
 - **Web UI** — dashboard, channels, downloads, activity/log, and settings pages.
 - **Mobile-friendly** — bottom navigation bar and a responsive layout.
 - **Light / dark themes.**
@@ -105,14 +124,15 @@ $EDITOR .env          # set TG_API_ID, TG_API_HASH, TELEARR_SECRET_KEY, TELEARR_
 
 # 2. Build and start
 docker compose up -d --build
-
-# 3. First-time Telegram login (interactive; enter the code Telegram sends you)
-docker compose run --rm telearr python authorize.py
 ```
 
-Then open **http://\<host\>:8790** and log in with the admin credentials from your
-`.env`. Add a channel, pick TV or movie, optionally map it to an IMDb title, and
-Telearr starts watching it.
+Then open **http://\<host\>:8790**, log in with the admin credentials from your
+`.env`, and click **Connect Telegram** — the in-app wizard walks you through phone
+number → login code → (optional) 2FA password. No terminal step required.
+
+Then **Add channel** (pick one from your Telegram chat list or paste a `@username` /
+`t.me` / invite link), optionally map it to an IMDb title, and Telearr starts
+watching it.
 
 ### Day-to-day
 
@@ -173,12 +193,21 @@ whether they are set, never their value.
 
 ## Screenshots
 
-_Placeholder — add screenshots of the dashboard, channels, downloads, and settings
-pages here._
+| Dashboard — live stats, storage donut, download-speed graph | Channels — TMDB/IMDb poster library |
+| --- | --- |
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Channels](docs/screenshots/channels.png) |
 
-| Dashboard | Channels | Downloads | Settings |
-| --- | --- | --- | --- |
-| _(todo)_ | _(todo)_ | _(todo)_ | _(todo)_ |
+| Channel detail — hero backdrop, episodes | Downloads — grouped, live progress |
+| --- | --- |
+| ![Channel detail](docs/screenshots/channel-drawer.png) | ![Downloads](docs/screenshots/downloads.png) |
+
+| Command palette (⌘K) | Settings |
+| --- | --- |
+| ![Command palette](docs/screenshots/command-palette.png) | ![Settings](docs/screenshots/settings.png) |
+
+| Connect Telegram (in-app sign-in) | Mobile |
+| --- | --- |
+| ![Login](docs/screenshots/login.png) | ![Mobile](docs/screenshots/mobile-dashboard.png) |
 
 ---
 

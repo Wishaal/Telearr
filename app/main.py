@@ -457,7 +457,7 @@ async def api_tg_auth(user=Depends(auth.require_user)):
 
 @app.post("/api/telegram/auth/api")
 async def api_tg_set_api(payload: dict, user=Depends(auth.require_user)):
-    return tg.set_api(payload.get("api_id"), payload.get("api_hash"))
+    return await tg.set_api(payload.get("api_id"), payload.get("api_hash"))
 
 
 @app.post("/api/telegram/auth/send_code")

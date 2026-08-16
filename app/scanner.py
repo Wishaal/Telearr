@@ -350,15 +350,19 @@ async def resume_pending_downloads():
 
 
 async def scan_loop():
-    client = get_client()
-    await client.connect()
-    if not await client.is_user_authorized():
-        db.log("ERROR", "Telegram session not authorized — run auth once (see README).")
-        return
     db.log("INFO", "Scanner started")
-    await resume_pending_downloads()
+    resumed = False
     while True:
         try:
+            client = get_client()                       # re-fetch each cycle so re-auth is picked up
+            if not client.is_connected():
+                await client.connect()
+            if not await client.is_user_authorized():
+                await asyncio.sleep(15)                  # wait for the user to connect Telegram
+                continue
+            if not resumed:                              # resume interrupted downloads once, after auth
+                await resume_pending_downloads()
+                resumed = True
             if settings.get_bool("paused", False):
                 await asyncio.sleep(30)
                 continue

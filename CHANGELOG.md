@@ -1,12 +1,33 @@
 # Changelog
 
-## Unreleased — UI overhaul
+## Unreleased — UI overhaul + Telegram onboarding
+
+### Telegram
+- **In-app sign-in wizard** — connect an account entirely from the browser
+  (phone → login code → optional 2FA password); `authorize.py` is no longer needed.
+- **Channel picker** — lists the channels/groups the account already follows so you
+  pick from a list instead of copying IDs from web Telegram; still accepts
+  `@username`, `t.me`, and invite links, joining them automatically.
+- **Saved-Messages notifications** — completed downloads are DM'd to your Telegram
+  Saved Messages with the poster image and an "Open in Plex" deep link.
+
+### UI
 - Installable **PWA** (manifest + icons) with SVG favicon and gradient brand identity.
 - **Real-time SSE** live updates (stats, active downloads, speed) — no more polling lag.
 - **⌘K command palette** for navigation and actions.
 - Dashboard: **storage donut**, animated count-up stats, and a **live download-speed sparkline**.
-- Channels are now a **TMDB poster library** (server-side proxy; API key never hits the browser).
+- Channels are now a **poster library** — TMDB art via a server-side proxy (API key
+  never hits the browser) with a keyless IMDb fallback when no TMDB key is set.
+- **Hero detail drawer** — full-bleed backdrop, synopsis, rating, and recent
+  downloads for the selected title.
 - Branded login screen, richer empty states, poster loading shimmer, micro-interactions, per-view page titles, theme-color + safe-area for mobile.
+- README now documents every feature and embeds live screenshots (`docs/screenshots/`).
+
+### Fixes
+- `reset_client()` now disconnects the old Telethon client before dropping it,
+  preventing two live clients sharing one session (`AUTH_KEY_DUPLICATED`).
+- Scanner loop re-fetches the client each cycle and tolerates a mid-session
+  re-auth (waits instead of crashing), resuming pending downloads once connected.
 
 ## 2.1.0 — \*arr integration + open-source scaffolding
 Telearr can now plug into the \*arr stack, and the project has proper

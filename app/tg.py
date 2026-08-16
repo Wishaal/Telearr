@@ -35,8 +35,16 @@ def get_client() -> TelegramClient:
     return _client
 
 
-def reset_client():
+async def reset_client():
+    """Disconnect and drop the client so the next get_client() rebuilds it.
+    Disconnecting first avoids two live clients on one session (AUTH_KEY_DUPLICATED)."""
     global _client
+    if _client is not None:
+        try:
+            if _client.is_connected():
+                await _client.disconnect()
+        except Exception:
+            pass
     _client = None
 
 
@@ -56,13 +64,13 @@ async def auth_status():
     return {"authorized": authed, "api_ready": api_ready}
 
 
-def set_api(api_id, api_hash):
+async def set_api(api_id, api_hash):
     try:
         settings.set("tg_api_id", str(int(str(api_id).strip())))
     except (TypeError, ValueError):
         return {"error": "API ID must be a number"}
     settings.set("tg_api_hash", str(api_hash).strip())
-    reset_client()
+    await reset_client()
     return {"ok": True}
 
 
@@ -110,7 +118,7 @@ async def logout():
         if not c.is_connected():
             await c.connect()
         await c.log_out()
-        reset_client()
+        await reset_client()
         return {"ok": True}
     except Exception as e:
         return {"error": str(e)}
