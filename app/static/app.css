@@ -311,3 +311,42 @@ body { background-image:
 .login-sub { text-align: center; color: var(--muted); font-size: 13px; margin: -2px 0 6px; }
 .login .card { gap: 11px; }
 .poster:not(.art-done)::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, var(--surface-2) 25%, var(--line) 37%, var(--surface-2) 63%); background-size: 400% 100%; animation: shimmer 1.3s ease infinite; }
+
+/* ============ v2.3: Telegram channel picker + detail drawer ============ */
+.chan-list { max-height: 220px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; margin-top: 4px; }
+.chan-item { width: 100%; display: flex; align-items: center; gap: 10px; background: transparent; border: 0; border-bottom: 1px solid var(--line); padding: 9px 11px; text-align: left; color: var(--text); }
+.chan-item:last-child { border-bottom: 0; }
+.chan-item:hover { background: var(--surface-2); }
+.chan-item.on { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.chan-item.resolve { color: var(--accent); font-weight: 600; }
+.ci-ic { color: var(--muted); display: inline-flex; flex: 0 0 auto; }
+.chan-item.resolve .ci-ic { color: var(--accent); }
+.ci-main { display: flex; flex-direction: column; min-width: 0; }
+.ci-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ci-sub { color: var(--muted); font-size: 11.5px; }
+.chan-selected:empty { display: none; }
+.chip { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 5px 10px; border-radius: 999px; background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); font-size: 12.5px; }
+.pad { padding: 10px 12px; }
+.poster { cursor: pointer; }
+
+.drawer { position: fixed; inset: 0; z-index: 70; background: rgba(3,6,12,.55); backdrop-filter: blur(4px); display: grid; place-items: start center; padding: 5vh 16px 16px; overflow: auto; }
+.drawer-card { width: min(760px, 100%); background: var(--surface-solid); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 30px 90px rgba(0,0,0,.55); }
+.hero-wrap { position: relative; }
+.hero { height: 260px; background-size: cover; background-position: center 20%; background-color: var(--surface-2); }
+.hero-fade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.10) 0%, transparent 40%, var(--surface-solid) 100%); }
+.drawer-x { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,.45); color: #fff; border-color: transparent; }
+.drawer-body { padding: 0 22px 22px; }
+.drawer-head { display: flex; gap: 18px; margin-top: -74px; position: relative; }
+.drawer-poster { width: 132px; flex: 0 0 132px; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; background: var(--surface-2); box-shadow: 0 14px 34px rgba(0,0,0,.5); display: grid; place-items: center; }
+.drawer-poster img { width: 100%; height: 100%; object-fit: cover; }
+.drawer-poster .poster-fallback { color: var(--muted); transform: scale(2); }
+.drawer-info { flex: 1; min-width: 0; padding-top: 82px; }
+.drawer-info h2 { font-size: 22px; letter-spacing: -.02em; }
+.drawer-meta { margin: 5px 0 9px; }
+.drawer-overview { font-size: 13.5px; line-height: 1.6; margin: 0 0 12px; max-width: 62ch; }
+.drawer-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.drawer-eps { margin-top: 22px; }
+.ep-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.ep-row:last-child { border-bottom: 0; }
+.ep-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 620px) { .drawer-head { flex-direction: column; align-items: flex-start; margin-top: -60px; } .drawer-info { padding-top: 6px; } .drawer-poster { width: 108px; flex-basis: 108px; } .hero { height: 200px; } }

@@ -12,7 +12,7 @@ from fastapi.responses import (RedirectResponse, HTMLResponse, JSONResponse,
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import db, auth, scanner, settings, plex, notify, arr, tmdb
+from . import db, auth, scanner, settings, plex, notify, arr, tmdb, tg
 from .tg import get_client
 from .namer import imdb_search
 from .config import summary
@@ -437,6 +437,16 @@ async def api_art(imdb: str = "", user=Depends(auth.require_user)):
 @app.post("/api/integrations/tmdb/test")
 async def api_tmdb_test(payload: dict = None, user=Depends(auth.require_user)):
     return await tmdb.test((payload or {}).get("key") or None)
+
+
+@app.get("/api/telegram/dialogs")
+async def api_telegram_dialogs(user=Depends(auth.require_user)):
+    return await tg.list_dialogs()
+
+
+@app.post("/api/telegram/resolve")
+async def api_telegram_resolve(payload: dict, user=Depends(auth.require_user)):
+    return await tg.resolve(payload.get("query", ""))
 
 
 # ── *arr integration: Newznab indexer ─────────────────────────────────

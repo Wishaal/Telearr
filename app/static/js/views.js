@@ -162,7 +162,7 @@ function channelCard(c, ctx) {
   const days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
   const dstr = (c.weekdays || "").split(",").filter((x) => x !== "").map((i) => days[i]).join(" ");
   const img = h("img", { class: "poster-img", alt: "", loading: "lazy" });
-  const poster = h("div", { class: "poster" },
+  const poster = h("div", { class: "poster", onClick: () => openChannelDrawer(ctx, c) },
     h("span", { class: "poster-fallback", html: icon("film") }), img,
     h("button", { class: `toggle ch-toggle ${c.enabled ? "on" : ""}`, title: c.enabled ? "Enabled" : "Disabled", "aria-label": "Toggle channel",
       onClick: async (e) => { e.stopPropagation(); await jpatch(`/api/channels/${c.id}`, { enabled: c.enabled ? 0 : 1 }); ctx.refresh(); } }));
@@ -183,6 +183,50 @@ export function viewChannels(ctx) {
   const rows = ctx.data.channels || [];
   if (!rows.length) return emptyState("channels", "No channels yet", "Add a Telegram channel to start grabbing episodes.", "Add channel", () => openChannelModal(ctx, null));
   return h("div", { class: "ch-grid" }, ...rows.map((c) => channelCard(c, ctx)));
+}
+
+// hero-backdrop detail drawer for a channel
+export function openChannelDrawer(ctx, c) {
+  const host = document.querySelector("#modal-root");
+  const art = _artCache.get(c.imdb_id) || {};
+  const eps = (ctx.data.downloads || []).filter((d) => d.channel_id === c.id && d.status === "completed")
+    .sort((a, b) => (b.finished_at || 0) - (a.finished_at || 0));
+  const hero = h("div", { class: "hero" });
+  const posterBox = h("div", { class: "drawer-poster" });
+  const overview = h("p", { class: "drawer-overview muted" });
+  const meta = h("div", { class: "drawer-meta muted small" });
+  const fill = (a) => {
+    if (a.backdrop) hero.style.backgroundImage = `url(${a.backdrop})`;
+    else if (a.poster) hero.style.backgroundImage = `url(${a.poster})`;
+    mount(posterBox, a.poster ? h("img", { src: a.poster, alt: "" }) : h("span", { class: "poster-fallback", html: icon("film") }));
+    overview.textContent = a.overview || "";
+    meta.textContent = [a.year, c.kind, a.rating ? "★ " + a.rating : "", c.imdb_id || ""].filter(Boolean).join("  ·  ");
+  };
+  fill(art);
+  if (!_artCache.has(c.imdb_id) && c.imdb_id) api(`/api/art?imdb=${encodeURIComponent(c.imdb_id)}`).then((a) => { _artCache.set(c.imdb_id, a || {}); fill(a || {}); });
+
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+  const close = () => { document.removeEventListener("keydown", onKey); host.replaceChildren(); };
+  document.addEventListener("keydown", onKey);
+  const drawer = h("div", { class: "drawer", onClick: (e) => { if (e.target === drawer) close(); } },
+    h("div", { class: "drawer-card" },
+      h("div", { class: "hero-wrap" }, hero, h("div", { class: "hero-fade" }),
+        h("button", { class: "btn ghost icon drawer-x", "aria-label": "Close", onClick: close }, h("span", { html: icon("x") }))),
+      h("div", { class: "drawer-body" },
+        h("div", { class: "drawer-head" }, posterBox,
+          h("div", { class: "drawer-info" },
+            h("h2", {}, c.imdb_title || c.title), meta, overview,
+            h("div", { class: "drawer-actions" },
+              h("button", { class: "btn primary sm", onClick: async () => { await api(`/api/channels/${c.id}/scan`, { method: "POST" }); toast("Scan started", "ok"); } }, h("span", { html: icon("scan") }), "Scan"),
+              h("button", { class: "btn ghost sm", onClick: async () => { await api(`/api/channels/${c.id}/backfill`, { method: "POST" }); toast("Backfill started", "ok"); } }, "Backfill"),
+              h("button", { class: "btn ghost sm", onClick: () => { close(); openChannelModal(ctx, c); } }, h("span", { html: icon("edit") }), "Edit")))),
+        h("div", { class: "drawer-eps" },
+          h("div", { class: "card-h" }, `${eps.length} episode${eps.length === 1 ? "" : "s"} downloaded`),
+          ...(eps.length ? eps.slice(0, 60).map((d) => h("div", { class: "ep-row" },
+            h("span", { class: "ep-name" }, base(d.save_path) || d.file_name),
+            h("span", { class: "muted small" }, d.file_size ? gb(d.file_size) : "")))
+            : [h("div", { class: "muted small pad" }, "No downloads yet.")])))));
+  host.replaceChildren(drawer);
 }
 
 // ── Downloads ──
@@ -384,7 +428,7 @@ export function viewSettings(ctx) {
 export function openChannelModal(ctx, channel) {
   const host = document.querySelector("#modal-root");
   let pick = null, imdbTimer = null;
-  const chat = h("input", { placeholder: "-1001976450659 (or a bare id)", value: channel ? channel.chat_id : "", disabled: !!channel });
+  let selected = channel ? { chat_id: channel.chat_id, title: channel.imdb_title || channel.title } : null;
   const kind = h("select", {}, ...["tv", "movie", "other"].map((k) => h("option", { value: k, selected: channel && channel.kind === k }, k === "tv" ? "TV show" : k === "movie" ? "Movie" : "Other")));
   const poll = h("input", { type: "number", min: "1", value: channel ? channel.poll_minutes : 10 });
   const daysOn = channel ? (channel.weekdays || "").split(",") : ["0", "1", "2", "3", "4", "5", "6"];
@@ -393,17 +437,50 @@ export function openChannelModal(ctx, channel) {
   const imdbQ = h("input", { placeholder: "Search IMDb by title…", autocomplete: "off", value: channel && channel.imdb_title ? channel.imdb_title : "" });
   const results = h("div", { class: "imdb-results" });
   const picked = h("div", { class: "imdb-picked" }, channel && channel.imdb_id ? `Current: ${channel.imdb_title || ""} (${channel.imdb_id})` : "");
-  imdbQ.addEventListener("input", () => {
-    clearTimeout(imdbTimer); const q = imdbQ.value;
-    imdbTimer = setTimeout(async () => {
-      if (!q || q.length < 2) return results.replaceChildren();
-      const res = await api(`/api/imdb/search?q=${encodeURIComponent(q)}`); if (!res) return;
-      results.replaceChildren(...res.map((r) => h("button", {
-        type: "button", class: "hit",
-        onClick: () => { const yr = r.year ? ` (${r.year})` : ""; pick = { imdb_id: r.imdb_id, imdb_title: `${r.title}${yr}` }; imdbQ.value = r.title; results.replaceChildren(); picked.replaceChildren(h("span", {}, "✓ "), h("b", {}, pick.imdb_title), h("span", { class: "muted small" }, ` (${r.imdb_id})`)); },
-      }, r.title, h("small", {}, ` ${r.year ? `(${r.year})` : ""} · ${r.kind || ""}`))));
-    }, 350);
-  });
+  const doImdbSearch = async (q) => {
+    if (!q || q.length < 2) return results.replaceChildren();
+    const res = await api(`/api/imdb/search?q=${encodeURIComponent(q)}`); if (!res) return;
+    results.replaceChildren(...res.map((r) => h("button", { type: "button", class: "hit",
+      onClick: () => { const yr = r.year ? ` (${r.year})` : ""; pick = { imdb_id: r.imdb_id, imdb_title: `${r.title}${yr}` }; imdbQ.value = r.title; results.replaceChildren(); picked.replaceChildren(h("span", {}, "✓ "), h("b", {}, pick.imdb_title), h("span", { class: "muted small" }, ` (${r.imdb_id})`)); },
+    }, r.title, h("small", {}, ` ${r.year ? `(${r.year})` : ""} · ${r.kind || ""}`))));
+  };
+  imdbQ.addEventListener("input", () => { clearTimeout(imdbTimer); const q = imdbQ.value; imdbTimer = setTimeout(() => doImdbSearch(q), 350); });
+
+  // ── channel selection ──
+  let chanArea;
+  if (channel) {
+    chanArea = h("label", {}, "Telegram channel", h("input", { value: `${channel.imdb_title || channel.title} (${channel.chat_id})`, disabled: true }));
+  } else {
+    const chanQ = h("input", { placeholder: "Search your channels, or paste @username / t.me / invite link", autocomplete: "off" });
+    const chanList = h("div", { class: "chan-list" }, h("div", { class: "muted small pad" }, "Loading your Telegram chats…"));
+    const chanSel = h("div", { class: "chan-selected" });
+    let dialogs = [];
+    const showSel = () => mount(chanSel, selected
+      ? h("div", { class: "chip" }, h("span", { html: icon("check") }), h("span", {}, `${selected.title} · ${selected.chat_id}`)) : []);
+    const selectChan = (d) => { selected = { chat_id: d.chat_id, title: d.title }; showSel(); renderList(); if (!imdbQ.value && d.title) { imdbQ.value = d.title; doImdbSearch(d.title); } };
+    const resolveChan = async () => {
+      mount(chanList, h("div", { class: "muted small pad" }, "Resolving…"));
+      const r = await jpost("/api/telegram/resolve", { query: chanQ.value.trim() });
+      if (r && r.chat_id) { selectChan(r); toast("Channel resolved" + (r.username ? " @" + r.username : ""), "ok"); }
+      else { toast((r && r.error) || "Could not resolve", "err"); renderList(); }
+    };
+    const renderList = () => {
+      const q = chanQ.value.trim();
+      const ql = q.toLowerCase();
+      const items = dialogs.filter((d) => !ql || (d.title + " " + d.username).toLowerCase().includes(ql));
+      const nodes = [];
+      if (/t\.me\/|joinchat|^@|^\+|^https?:/i.test(q))
+        nodes.push(h("button", { type: "button", class: "chan-item resolve", onclick: resolveChan }, h("span", { class: "ci-ic", html: icon("link") }), h("span", {}, `Resolve “${q}”`)));
+      nodes.push(...items.slice(0, 80).map((d) => h("button", { type: "button", class: "chan-item" + (selected && String(selected.chat_id) === String(d.chat_id) ? " on" : ""), onclick: () => selectChan(d) },
+        h("span", { class: "ci-ic", html: icon(d.kind === "channel" ? "channels" : "folder") }),
+        h("span", { class: "ci-main" }, h("span", { class: "ci-title" }, d.title), h("span", { class: "ci-sub" }, (d.username ? "@" + d.username + " · " : "") + d.kind)))));
+      if (!nodes.length) nodes.push(h("div", { class: "muted small pad" }, dialogs.length ? "No matches — paste a @username / t.me / invite link." : "No channels found — paste a link to add one."));
+      mount(chanList, ...nodes);
+    };
+    chanQ.addEventListener("input", renderList);
+    api("/api/telegram/dialogs").then((d) => { dialogs = d || []; if (!dialogs.length) mount(chanList, h("div", { class: "muted small pad" }, "No Telegram chats found. Paste a @username / t.me / invite link above.")); else renderList(); });
+    chanArea = h("label", {}, "Telegram channel", chanQ, chanList, chanSel);
+  }
 
   const onKey = (e) => { if (e.key === "Escape") close(); };
   const close = () => { document.removeEventListener("keydown", onKey); host.replaceChildren(); };
@@ -416,8 +493,8 @@ export function openChannelModal(ctx, channel) {
       if (pick) Object.assign(patch, pick);
       if (await jpatch(`/api/channels/${channel.id}`, patch)) toast("Channel updated", "ok");
     } else {
-      const cid = chat.value.trim(); if (!cid) return chat.focus();
-      const ch = await jpost("/api/channels", { chat_id: cid, kind: kind.value, weekdays, poll_minutes: pm });
+      if (!selected) return toast("Pick a channel or resolve a link first", "err");
+      const ch = await jpost("/api/channels", { chat_id: selected.chat_id, kind: kind.value, weekdays, poll_minutes: pm });
       if (ch && ch.id && pick) await jpatch(`/api/channels/${ch.id}`, pick);
       if (ch) toast("Channel added", "ok");
     }
@@ -428,7 +505,7 @@ export function openChannelModal(ctx, channel) {
     h("div", { class: "modal-card" },
       h("div", { class: "modal-head" }, h("h3", {}, channel ? "Edit channel" : "Add channel"),
         h("button", { class: "btn ghost icon", "aria-label": "Close", onClick: close }, h("span", { html: icon("x") }))),
-      h("label", {}, "Telegram chat id", chat),
+      chanArea,
       h("label", {}, "Kind", kind),
       h("label", {}, "Scan on days"), h("div", { class: "days" }, ...dayBtns),
       h("label", {}, "Poll interval (minutes)", poll),
@@ -437,5 +514,4 @@ export function openChannelModal(ctx, channel) {
         h("button", { class: "btn ghost", onClick: close }, "Cancel"),
         h("button", { class: "btn primary", onClick: save }, "Save"))));
   host.replaceChildren(overlay);
-  if (!channel) chat.focus();
 }
