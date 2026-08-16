@@ -511,6 +511,25 @@ async def api_change_password(payload: dict, user=Depends(auth.require_user)):
     return {"ok": True}
 
 
+@app.post("/api/account/username")
+async def api_change_username(payload: dict, user=Depends(auth.require_user)):
+    current = payload.get("current", "")
+    new = (payload.get("username") or "").strip()
+    if not auth.verify(user, current):
+        raise HTTPException(400, "current password is incorrect")
+    if len(new) < 3:
+        raise HTTPException(400, "username must be at least 3 characters")
+    if new != user and auth.username_exists(new):
+        raise HTTPException(400, "that username is already taken")
+    auth.set_username(user, new)
+    db.log("INFO", f"Admin username changed to {new}")
+    # username change bumps the session epoch (revokes old cookies) — re-issue ours
+    r = JSONResponse({"ok": True, "username": new})
+    r.set_cookie("telearr_sess", auth.make_cookie(new),
+                 httponly=True, samesite="lax", max_age=7 * 86400)
+    return r
+
+
 # ── queue control ─────────────────────────────────────────────────────
 @app.post("/api/queue/pause")
 async def api_pause(user=Depends(auth.require_user)):

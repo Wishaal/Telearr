@@ -61,8 +61,30 @@ export const jpost = (url, obj) => api(url, { method: "POST", headers: { "Conten
 export const jpatch = (url, obj) => api(url, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(obj) });
 
 export async function copy(text) {
-  try { await navigator.clipboard.writeText(text); toast("Copied to clipboard", "ok"); }
-  catch { toast("Copy failed — select manually", "err"); }
+  // navigator.clipboard needs a secure context (https or localhost). Over a
+  // plain-HTTP LAN address it's undefined, so fall back to a hidden textarea +
+  // execCommand, which still works there.
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      toast("Copied to clipboard", "ok");
+      return;
+    }
+  } catch { /* fall through to legacy path */ }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;top:-1000px;opacity:0";
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try { ta.setSelectionRange(0, text.length); } catch { /* not a text field */ }
+    const ok = document.execCommand("copy");
+    ta.remove();
+    toast(ok ? "Copied to clipboard" : "Copy failed — select manually", ok ? "ok" : "err");
+  } catch {
+    toast("Copy failed — select manually", "err");
+  }
 }
 
 // ── formatters ──

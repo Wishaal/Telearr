@@ -251,6 +251,25 @@ Contributions are welcome. See **[CONTRIBUTING.md](CONTRIBUTING.md)** for local 
 setup, coding style, and the PR process, and
 **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** for community expectations.
 
+## Legal & responsible use
+
+Telearr is an **independent, self-hosted, general-purpose tool** that downloads
+files from Telegram channels *you* choose into folders *you* control. It hosts,
+indexes, and ships **no content** of any kind.
+
+- **Not affiliated.** Telearr is **not affiliated with, endorsed by, or sponsored
+  by** Telegram, the Sonarr/Radarr projects, Plex, or TMDB. All trademarks belong
+  to their owners. The app's logo is an original mark.
+- **You are responsible for what you download.** Like a browser or `curl`, the
+  tool is neutral; downloading or sharing copyrighted material without
+  authorization may be illegal in your jurisdiction. Only download what you have
+  the right to, keep your instance private, and don't redistribute.
+- **Attribution.** This product uses the TMDB API but is **not endorsed or
+  certified by TMDB**. See [`NOTICE`](NOTICE) for third-party licenses.
+
+See **[docs/LEGAL.md](docs/LEGAL.md)** for the full, plain-language risk map and a
+responsible-use checklist. *(That document is not legal advice.)*
+
 ## License
 
 Telearr is licensed under the **GNU General Public License v3.0** — matching the

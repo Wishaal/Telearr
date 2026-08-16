@@ -144,3 +144,22 @@ def test_old_failures_fall_out_of_the_window(auth_mod, monkeypatch):
 
 def test_verify_rejects_unknown_user_without_raising(auth_mod, fresh_db):
     assert auth_mod.verify("no-such-user", "whatever") is False
+
+
+def test_app_auth_username_change(fresh_db):
+    pytest.importorskip("itsdangerous")
+    pytest.importorskip("fastapi")
+    from app import auth, db
+
+    with db.conn() as c:
+        c.execute("INSERT INTO users(username, pw_hash) VALUES(?,?)",
+                  ("wishaal", auth._hash("pw123456")))
+    assert auth.verify("wishaal", "pw123456")
+    assert auth.username_exists("wishaal")
+    assert not auth.username_exists("newname")
+
+    auth.set_username("wishaal", "newname")
+    assert auth.username_exists("newname")
+    assert not auth.username_exists("wishaal")
+    # the password still verifies under the new username
+    assert auth.verify("newname", "pw123456")

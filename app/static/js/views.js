@@ -477,8 +477,16 @@ export function viewSettings(ctx) {
     const inp = (id, val, type = "text") => h("input", { id, value: val ?? "", type });
 
     const account = card("Account",
+      row("Username", inp("acct-username", data.user || ""), "how you sign in"),
+      row("Confirm password", inp("uname-cur", "", "password"), "required to change username"),
+      h("div", { class: "set-actions" },
+        h("button", { class: "btn primary sm", onClick: async () => {
+          const r = await jpost("/api/account/username", { username: root.querySelector("#acct-username").value, current: root.querySelector("#uname-cur").value });
+          if (r) { toast("Username changed to " + r.username, "ok"); ctx.rerender(); }
+        } }, "Change username")),
+      h("div", { class: "card-h", style: "margin-top:20px" }, "Password"),
       row("Current password", inp("pw-cur", "", "password")),
-      row("New password", inp("pw-new", "", "password"), "min 6 characters"),
+      row("New password", inp("pw-new", "", "password"), "min 12 characters"),
       h("div", { class: "set-actions" },
         h("button", { class: "btn primary sm", onClick: async () => { const r = await jpost("/api/account/password", { current: root.querySelector("#pw-cur").value, new: root.querySelector("#pw-new").value }); if (r) { toast("Password changed", "ok"); root.querySelector("#pw-cur").value = ""; root.querySelector("#pw-new").value = ""; } } }, "Change password"),
         h("a", { class: "btn ghost sm", href: "/logout" }, h("span", { html: icon("logout") }), "Sign out")));
@@ -525,7 +533,8 @@ export function viewSettings(ctx) {
       row("API key" + (s.tmdb_key_set ? " (saved)" : ""), inp("set-tmdb_key", "", "password")),
       h("div", { class: "set-actions" },
         h("button", { class: "btn primary sm", onClick: async () => { const tk = root.querySelector("#set-tmdb_key").value; if (tk) await jpatch("/api/settings", { tmdb_key: tk }); toast("TMDB key saved", "ok"); } }, "Save"),
-        h("button", { class: "btn ghost sm", onClick: async () => { tmdbOut.textContent = "Testing…"; tmdbOut.style.color = "var(--muted)"; const r = await jpost("/api/integrations/tmdb/test", { key: root.querySelector("#set-tmdb_key").value }); if (r) { tmdbOut.textContent = r.detail; tmdbOut.style.color = `var(--${r.ok ? "ok" : "err"})`; } } }, "Test"), tmdbOut));
+        h("button", { class: "btn ghost sm", onClick: async () => { tmdbOut.textContent = "Testing…"; tmdbOut.style.color = "var(--muted)"; const r = await jpost("/api/integrations/tmdb/test", { key: root.querySelector("#set-tmdb_key").value }); if (r) { tmdbOut.textContent = r.detail; tmdbOut.style.color = `var(--${r.ok ? "ok" : "err"})`; } } }, "Test"), tmdbOut),
+      h("div", { class: "muted small", style: "margin-top:10px" }, "This product uses the TMDB API but is not endorsed or certified by TMDB."));
 
     const keyInp = inp("arr-key", arrKey); keyInp.readOnly = true;
     const nzInp = inp("arr-nzb", `${location.origin}/api/newznab`); nzInp.readOnly = true;

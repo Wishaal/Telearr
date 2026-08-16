@@ -15,8 +15,9 @@ const NAV = [
 const TITLE = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
 const LOGO = '<svg viewBox="0 0 64 64" width="27" height="27" aria-hidden="true">'
   + '<rect width="64" height="64" rx="14" fill="#0071e3"/>'
-  + '<path d="M14 27 L50 15 L41 50 L32 40 L26 45 L26 36 Z" fill="#fff"/>'
-  + '<path d="M26 36 L41 22 L26 45 Z" fill="#cfe3ff"/></svg>';
+  + '<g fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">'
+  + '<path d="M32 15 V35"/><path d="M23 27 L32 36 L41 27"/>'
+  + '<path d="M17 40 V45 A4 4 0 0 0 21 49 H43 A4 4 0 0 0 47 45 V40"/></g></svg>';
 
 let DATA = { status: null, downloads: [], channels: [] };
 let active = (location.hash.replace("#/", "") || "dashboard");

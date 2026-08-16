@@ -1,0 +1,53 @@
+Telearr
+Copyright (c) 2026 Wishaal Mathoera and contributors
+Licensed under the GNU General Public License v3.0 (see LICENSE).
+
+Telearr is an independent project. It is NOT affiliated with, endorsed by, or
+sponsored by Telegram, the Sonarr/Radarr projects, Plex, or The Movie Database
+(TMDB). All trademarks are the property of their respective owners.
+
+This product uses the TMDB API but is not endorsed or certified by TMDB.
+
+================================================================================
+Third-party components
+================================================================================
+
+Telearr bundles/depends on the following open-source components. Each remains
+under its own license; consult each project for authoritative terms.
+
+Python dependencies
+-------------------
+  Telethon .............. MIT License        (MTProto client)
+  cryptg ................ MIT License        (AES-NI crypto backend)
+  FastAPI ............... MIT License        (web framework)
+  Starlette ............. BSD-3-Clause       (ASGI toolkit, via FastAPI)
+  Pydantic .............. MIT License        (validation, via FastAPI)
+  Uvicorn ............... BSD-3-Clause       (ASGI server)
+  Jinja2 ................ BSD-3-Clause       (templating)
+  python-multipart ...... Apache-2.0         (form parsing)
+  itsdangerous .......... BSD-3-Clause       (signed session cookies)
+  bcrypt ................ Apache-2.0         (password hashing)
+  httpx ................. BSD-3-Clause       (HTTP client)
+
+All of the above are permissive licenses compatible with GPL-3.0.
+
+Design & assets
+---------------
+  UI icons .............. Modeled on the Lucide (ISC) and Feather (MIT) open
+                          icon sets; inlined as SVG (app/static/js/icons.js).
+  Design tokens ......... Colour roles, radii, and type scale adapted from the
+                          Open Design project's reference design systems
+                          (github.com/nexu-io/open-design), Apache-2.0.
+  Fonts ................. No proprietary fonts are redistributed. The CSS
+                          references system fonts (e.g. "SF Pro" on Apple
+                          platforms) with open fallbacks (Inter, Helvetica).
+
+Third-party services (optional, used at runtime)
+------------------------------------------------
+  The Movie Database (TMDB) — poster/backdrop art via the TMDB API. Requires a
+    user-supplied API key under TMDB's terms. "This product uses the TMDB API
+    but is not endorsed or certified by TMDB."
+  IMDb suggestion endpoint — keyless, unofficial/undocumented; best-effort.
+  Plex — targeted library refresh via the Plex API on your own server.
+
+See docs/LEGAL.md for responsible-use guidance and the full legal notes.

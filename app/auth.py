@@ -109,6 +109,18 @@ def set_password(username: str, password: str):
     settings.set("session_epoch", str(int(_epoch() or 0) + 1))
 
 
+def username_exists(username: str) -> bool:
+    with db.conn() as c:
+        return c.execute("SELECT 1 FROM users WHERE username=?", (username,)).fetchone() is not None
+
+
+def set_username(old: str, new: str):
+    with db.conn() as c:
+        c.execute("UPDATE users SET username=? WHERE username=?", (new, old))
+    # revoke every existing session (the caller re-issues a fresh cookie)
+    settings.set("session_epoch", str(int(_epoch() or 0) + 1))
+
+
 def make_cookie(username: str) -> str:
     return _signer.dumps({"u": username, "e": _epoch()})
 
