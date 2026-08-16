@@ -26,7 +26,7 @@ What you expected to happen.
 
 Paste relevant output. **Redact secrets** (API hash, tokens, passwords).
 
-- Container logs: `docker compose logs --tail=200 hermes-media`
+- Container logs: `docker compose logs --tail=200 telearr`
 - The Activity page in the UI, if relevant.
 
 ```
@@ -42,7 +42,7 @@ Paste relevant output. **Redact secrets** (API hash, tokens, passwords).
 
 ## Configuration (redact secrets)
 
-Relevant `.env` / Settings values (e.g. `HERMES_DL_WORKERS`, `HERMES_MAX_CONCURRENT`,
+Relevant `.env` / Settings values (e.g. `TELEARR_DL_WORKERS`, `TELEARR_MAX_CONCURRENT`,
 library paths, whether Plex/webhook are enabled).
 
 ## Additional context

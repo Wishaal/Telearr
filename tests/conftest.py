@@ -14,9 +14,9 @@ import tempfile
 # any fixture can run.
 _TEST_DATA_DIR = tempfile.mkdtemp(prefix="telearr-tests-")
 
-os.environ.setdefault("HERMES_DATA_DIR", _TEST_DATA_DIR)
-os.environ.setdefault("HERMES_LOG_DIR", os.path.join(_TEST_DATA_DIR, "logs"))
-os.environ.setdefault("HERMES_SECRET_KEY", "test-secret-key-not-for-production")
+os.environ.setdefault("TELEARR_DATA_DIR", _TEST_DATA_DIR)
+os.environ.setdefault("TELEARR_LOG_DIR", os.path.join(_TEST_DATA_DIR, "logs"))
+os.environ.setdefault("TELEARR_SECRET_KEY", "test-secret-key-not-for-production")
 
 import pytest
 
@@ -31,7 +31,7 @@ def fresh_db(tmp_path, monkeypatch):
     """
     from app import config, db
 
-    dbfile = str(tmp_path / "hermes.db")
+    dbfile = str(tmp_path / "telearr.db")
     monkeypatch.setattr(config, "DB_PATH", dbfile, raising=False)
     monkeypatch.setattr(db, "DB_PATH", dbfile, raising=False)
     db.init()

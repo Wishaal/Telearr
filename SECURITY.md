@@ -71,7 +71,7 @@ Telearr is designed to run behind your own network boundary:
 
 - Run it as the intended unprivileged UID (`PUID`/`PGID`), not root.
 - Keep `.env` at mode `0600` and never commit it.
-- Set a strong random `HERMES_SECRET_KEY` and a strong admin password.
+- Set a strong random `TELEARR_SECRET_KEY` and a strong admin password.
 - The container publishes port `8790` on your LAN — do **not** expose it directly
   to the internet. Front it with a reverse proxy providing TLS and, ideally, an
   additional authentication layer.

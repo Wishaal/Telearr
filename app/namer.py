@@ -171,7 +171,7 @@ def build_save_path(base_dir: str, show_title: str, season: int, episode: int,
                     filename: str, episode_title: str = "") -> str:
     safe_show = _sanitize(show_title) or "Unknown"
     # SECURITY: basename + sanitize the channel-supplied filename so it can never
-    # escape base_dir (e.g. "../../data/hermes.db"). Only the basename is ever used.
+    # escape base_dir (e.g. "../../data/telearr.db"). Only the basename is ever used.
     safe_fn = _sanitize(os.path.basename(filename or "")).lstrip(".") or "file"
     safe_ep = _sanitize(episode_title or "").strip(" -_.")
     safe_ep = re.sub(r"\s*\.?(mp4|mkv|avi|mov|webm|m4v|flv|wmv|ts|3gp)\s*$", "",

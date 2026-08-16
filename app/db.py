@@ -1,6 +1,6 @@
 # app/db.py — SQLite access layer (WAL, tuned pragmas, schema, indexes).
-# Schema is backward-compatible with hermes-media v1, so an existing
-# hermes.db imports cleanly (every CREATE ... IF NOT EXISTS is a no-op on it).
+# Schema is backward-compatible with telearr v1, so an existing
+# telearr.db imports cleanly (every CREATE ... IF NOT EXISTS is a no-op on it).
 import sqlite3
 import time
 import logging

@@ -68,7 +68,7 @@ async def do_login(username: str = Form(...), password: str = Form(...)):
     if not auth.verify(username, password):
         return RedirectResponse("/login?error=Invalid+credentials", status_code=303)
     r = RedirectResponse("/", status_code=303)
-    r.set_cookie("hermes_sess", auth.make_cookie(username),
+    r.set_cookie("telearr_sess", auth.make_cookie(username),
                  httponly=True, samesite="lax", max_age=7 * 86400)
     return r
 
@@ -76,7 +76,7 @@ async def do_login(username: str = Form(...), password: str = Form(...)):
 @app.get("/logout")
 async def logout():
     r = RedirectResponse("/login", status_code=303)
-    r.delete_cookie("hermes_sess")
+    r.delete_cookie("telearr_sess")
     return r
 
 

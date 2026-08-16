@@ -19,7 +19,7 @@ def test_release_name_quality_normalization():
 
 def test_build_save_path_rejects_traversal():
     # malicious channel filename must never escape base_dir (no season/episode path)
-    for evil in ["../../../../data/hermes.db", "/etc/passwd", "..\\..\\x", "....//x.mp4"]:
+    for evil in ["../../../../data/telearr.db", "/etc/passwd", "..\\..\\x", "....//x.mp4"]:
         p = namer.build_save_path("/media/TvShows/1080p", "Show", 0, 0, evil, "")
         assert p.startswith("/media/TvShows/1080p/")
         assert ".." not in p.split("/")

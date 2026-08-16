@@ -91,8 +91,8 @@ boot (`resume_pending_downloads`).
 
 ## Database schema
 
-SQLite (WAL mode) at `${HERMES_DATA_DIR}/hermes.db`. The schema is
-backward-compatible with hermes-media v1, so an existing database imports cleanly.
+SQLite (WAL mode) at `${TELEARR_DATA_DIR}/telearr.db`. The schema is
+backward-compatible with telearr v1, so an existing database imports cleanly.
 
 - **`users`** — `username` (PK), `pw_hash` (bcrypt). Seeded on first run.
 - **`channels`** — watched Telegram channels: `id` (PK), `chat_id` (unique, `-100…`

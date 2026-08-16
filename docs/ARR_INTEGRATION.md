@@ -125,7 +125,7 @@ This integration is new — please keep expectations calibrated:
 - **Sizes/quality flags are best-effort.** Quality is inferred from filename tokens
   (`1080p`, `2160p`, etc.); releases without clear tokens may be categorized
   imperfectly.
-- **One download at a time by default.** `HERMES_MAX_CONCURRENT` defaults to `1`;
+- **One download at a time by default.** `TELEARR_MAX_CONCURRENT` defaults to `1`;
   \*arr grabs queue behind organic scans and each other.
 - **Categories are limited** to TV (`5000`) and Movies (`2000`). Anime, and finer
   sub-categories, are not specifically modeled yet.

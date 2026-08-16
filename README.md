@@ -96,7 +96,7 @@ Requirements: Docker + Docker Compose, and Telegram API credentials from
 ```bash
 # 1. Configure
 cp .env.example .env
-$EDITOR .env          # set TG_API_ID, TG_API_HASH, HERMES_SECRET_KEY, HERMES_ADMIN_PASS
+$EDITOR .env          # set TG_API_ID, TG_API_HASH, TELEARR_SECRET_KEY, TELEARR_ADMIN_PASS
 
 # 2. Build and start
 docker compose up -d --build
@@ -131,17 +131,17 @@ Telearr is configured in two complementary places.
 | --- | --- | --- |
 | `TG_API_ID` / `TG_API_HASH` | Telegram API credentials | — (required) |
 | `PUID` / `PGID` | UID/GID that owns downloaded files | `1000` |
-| `HERMES_TV_DIR` / `HERMES_TV_DIR_4K` | TV libraries (1080p / 4K) | `/media/TvShows/…` |
-| `HERMES_MOVIES_DIR` / `HERMES_MOVIES_DIR_4K` | Movie libraries (1080p / 4K) | `/media/Movies/…` |
-| `HERMES_OTHER_DIR` | Fallback library for unparsed media | `/media/Other` |
-| `HERMES_MIN_FREE_GB` | Refuse to start a download below this free space | `50` |
-| `HERMES_DL_WORKERS` | Parallel senders per file | `4` |
-| `HERMES_MAX_CONCURRENT` | Simultaneous downloads | `1` |
-| `HERMES_BIND_PORT` | Web/API port | `8790` |
-| `HERMES_SECRET_KEY` | Session-cookie signing key | — (set a strong random value) |
-| `HERMES_ADMIN_USER` / `HERMES_ADMIN_PASS` | Seed admin login (first run only) | — |
+| `TELEARR_TV_DIR` / `TELEARR_TV_DIR_4K` | TV libraries (1080p / 4K) | `/media/TvShows/…` |
+| `TELEARR_MOVIES_DIR` / `TELEARR_MOVIES_DIR_4K` | Movie libraries (1080p / 4K) | `/media/Movies/…` |
+| `TELEARR_OTHER_DIR` | Fallback library for unparsed media | `/media/Other` |
+| `TELEARR_MIN_FREE_GB` | Refuse to start a download below this free space | `50` |
+| `TELEARR_DL_WORKERS` | Parallel senders per file | `4` |
+| `TELEARR_MAX_CONCURRENT` | Simultaneous downloads | `1` |
+| `TELEARR_BIND_PORT` | Web/API port | `8790` |
+| `TELEARR_SECRET_KEY` | Session-cookie signing key | — (set a strong random value) |
+| `TELEARR_ADMIN_USER` / `TELEARR_ADMIN_PASS` | Seed admin login (first run only) | — |
 | `PLEX_URL` / `PLEX_TOKEN` | Enable targeted Plex refresh | — (optional) |
-| `HERMES_NOTIFY_WEBHOOK` | Completion webhook URL | — (optional) |
+| `TELEARR_NOTIFY_WEBHOOK` | Completion webhook URL | — (optional) |
 
 **Settings UI (runtime)** — a subset of settings can be changed live from the
 Settings page with no rebuild: download workers, max concurrent, min free GB,
@@ -167,7 +167,7 @@ pages here._
 
 - Telearr runs as an **unprivileged UID** (`PUID`/`PGID`) inside the container, not
   as root, so downloaded files are owned by your media user.
-- Secrets (`TG_API_HASH`, `HERMES_SECRET_KEY`, admin password, Plex token) belong in
+- Secrets (`TG_API_HASH`, `TELEARR_SECRET_KEY`, admin password, Plex token) belong in
   `.env` — which should be `0600` and **never committed**. `.env.example` is the only
   environment file in the repo.
 - The web UI and API are protected by a bcrypt-hashed login and a signed session

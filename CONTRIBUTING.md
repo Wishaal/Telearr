@@ -40,8 +40,8 @@ pip install -r requirements.txt -r requirements-dev.txt
 
 # 4. Provide config
 cp .env.example .env
-$EDITOR .env          # at minimum: TG_API_ID, TG_API_HASH, HERMES_SECRET_KEY,
-                      # HERMES_ADMIN_USER, HERMES_ADMIN_PASS
+$EDITOR .env          # at minimum: TG_API_ID, TG_API_HASH, TELEARR_SECRET_KEY,
+                      # TELEARR_ADMIN_USER, TELEARR_ADMIN_PASS
 ```
 
 Because config is read from environment variables (see `app/config.py`), export
@@ -50,10 +50,10 @@ directories so you don't touch a real library:
 
 ```bash
 set -a && source .env && set +a
-export HERMES_DATA_DIR=./data
-export HERMES_TV_DIR=./library/TvShows/1080p HERMES_TV_DIR_4K=./library/TvShows/4K
-export HERMES_MOVIES_DIR=./library/Movies/1080p HERMES_MOVIES_DIR_4K=./library/Movies/4K
-export HERMES_OTHER_DIR=./library/Other
+export TELEARR_DATA_DIR=./data
+export TELEARR_TV_DIR=./library/TvShows/1080p TELEARR_TV_DIR_4K=./library/TvShows/4K
+export TELEARR_MOVIES_DIR=./library/Movies/1080p TELEARR_MOVIES_DIR_4K=./library/Movies/4K
+export TELEARR_OTHER_DIR=./library/Other
 ```
 
 ### Run the app locally
@@ -63,7 +63,7 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8790
 ```
 
 Open <http://127.0.0.1:8790>. First run seeds the admin user from
-`HERMES_ADMIN_USER` / `HERMES_ADMIN_PASS`. To download anything you also need a
+`TELEARR_ADMIN_USER` / `TELEARR_ADMIN_PASS`. To download anything you also need a
 Telegram session — run `python authorize.py` once and follow the prompts.
 
 ### Run the tests

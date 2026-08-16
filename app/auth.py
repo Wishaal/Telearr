@@ -7,7 +7,7 @@ from . import db, settings
 from .config import SECRET_KEY, DEFAULT_USER, DEFAULT_PASS
 
 MAX_AGE = 7 * 86400   # cookies expire server-side after 7 days
-_signer = URLSafeTimedSerializer(SECRET_KEY or secrets.token_hex(32), salt="hermes-session")
+_signer = URLSafeTimedSerializer(SECRET_KEY or secrets.token_hex(32), salt="telearr-session")
 
 
 def _hash(pw: str) -> str:
@@ -54,7 +54,7 @@ def make_cookie(username: str) -> str:
 
 
 def cookie_user(request: Request):
-    tok = request.cookies.get("hermes_sess")
+    tok = request.cookies.get("telearr_sess")
     if not tok:
         return None
     try:
