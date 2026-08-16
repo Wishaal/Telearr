@@ -430,7 +430,8 @@ def _sab_delete(nzo):
 async def _sab(request: Request):
     qp = dict(request.query_params)
     form = await request.form() if request.method == "POST" else {}
-    g = lambda k, d="": qp.get(k) or (form.get(k) if hasattr(form, "get") else None) or d
+    def g(k, d=""):
+        return qp.get(k) or (form.get(k) if hasattr(form, "get") else None) or d
     mode = g("mode")
     if mode == "version":
         return JSONResponse(arr.sab_version())
