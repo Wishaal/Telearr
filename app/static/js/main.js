@@ -1,7 +1,8 @@
 // main.js — app bootstrap: shell, router, polling, theme.
 import { h, mount, qs, api } from "./core.js";
 import { icon } from "./icons.js";
-import { viewDashboard, viewChannels, viewDownloads, viewActivity, viewSettings, openChannelModal, ui } from "./views.js";
+import { viewDashboard, viewChannels, viewDownloads, viewActivity, viewSettings, openChannelModal, liveActive, liveDashboard, ui } from "./views.js";
+import { initPalette, openCommandPalette } from "./palette.js";
 
 const NAV = [
   { id: "dashboard", label: "Dashboard", icon: "dashboard", view: viewDashboard },
@@ -11,6 +12,12 @@ const NAV = [
   { id: "settings", label: "Settings", icon: "settings", view: viewSettings },
 ];
 const TITLE = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
+const LOGO = '<svg viewBox="0 0 64 64" width="26" height="26" aria-hidden="true">'
+  + '<defs><linearGradient id="brandg" x1="0" y1="0" x2="1" y2="1">'
+  + '<stop offset="0" stop-color="#5b93ff"/><stop offset="1" stop-color="#35c46b"/></linearGradient></defs>'
+  + '<rect width="64" height="64" rx="15" fill="url(#brandg)"/>'
+  + '<path d="M14 27 L50 15 L41 50 L32 40 L26 45 L26 36 Z" fill="#fff"/>'
+  + '<path d="M32 40 L41 50 L32 44 Z" fill="#cfe0ff"/></svg>';
 
 let DATA = { status: null, downloads: [], channels: [] };
 let active = (location.hash.replace("#/", "") || "dashboard");
@@ -36,7 +43,7 @@ const ctx = {
 
 // ── shell ──
 function buildShell() {
-  const brand = h("div", { class: "brand" }, h("span", { class: "logo", html: icon("telegram") }), h("span", {}, "Tele", h("b", {}, "arr")));
+  const brand = h("div", { class: "brand" }, h("span", { class: "logo", html: LOGO }), h("span", {}, "Tele", h("b", {}, "arr")));
   const navBtn = (n, cls) => h("button", { class: `${cls} ${active === n.id ? "on" : ""}`, dataset: { view: n.id }, onClick: () => go(n.id) },
     h("span", { class: "ni", html: icon(n.icon) }), h("span", { class: "nl" }, n.label));
   const sidebar = h("aside", { class: "sidebar" },
@@ -50,6 +57,7 @@ function buildShell() {
     h("h1", { id: "view-title" }, TITLE[active]),
     h("span", { id: "tg-dot", class: "dot", title: "Telegram" }),
     h("div", { class: "topbar-actions" },
+      h("button", { class: "btn ghost cmdk-btn", title: "Command palette", "aria-label": "Open command palette (Ctrl/Cmd K)", onClick: openCommandPalette }, h("span", { html: icon("search") }), h("kbd", {}, "⌘K")),
       h("button", { id: "theme-toggle", class: "btn ghost icon", title: "Theme", "aria-label": "Toggle theme (auto/light/dark)", onClick: cycleTheme }, h("span", { html: icon("sun") })),
       h("div", { id: "ctx-actions" })));
   const bottomNav = h("nav", { class: "bottom-nav" }, ...NAV.map((n) => navBtn(n, "bnav-item")));
@@ -62,6 +70,7 @@ function buildShell() {
 function syncNav() {
   document.querySelectorAll(".nav-item,.bnav-item").forEach((b) => b.classList.toggle("on", b.dataset.view === active));
   const t = qs("#view-title"); if (t) t.textContent = TITLE[active];
+  document.title = active === "dashboard" ? "Telearr" : `${TITLE[active]} · Telearr`;
   const ca = qs("#ctx-actions");
   if (ca) mount(ca, active === "channels"
     ? h("button", { class: "btn primary", onClick: () => openChannelModal(ctx, null) }, h("span", { html: icon("plus") }), "Add channel")
@@ -111,10 +120,45 @@ async function go(name) {
 }
 window.addEventListener("hashchange", () => { const n = location.hash.replace("#/", ""); if (TITLE[n] && n !== active) go(n); });
 
+// ── live updates via Server-Sent Events ──
+let _es = null, _prevCompleted = -1, _lastSSE = 0;
+function connectSSE() {
+  if (typeof EventSource === "undefined") return;
+  try { _es = new EventSource("/api/events"); } catch { return; }
+  _es.onmessage = (e) => {
+    let d; try { d = JSON.parse(e.data); } catch { return; }
+    _lastSSE = Date.now();
+    DATA.status = { ...(DATA.status || {}), stats: d.stats, paused: d.paused, disk: d.disk };
+    const others = DATA.downloads.filter((x) => !["downloading", "queued"].includes(x.status));
+    DATA.downloads = [...d.active, ...others];
+    updateShell();
+    if (active === "dashboard") liveDashboard(ctx);
+    else if (active === "downloads") { const el = qs("#dl-active"); if (el) mount(el, ...liveActive(ctx)); }
+    if (d.stats.completed !== _prevCompleted) { _prevCompleted = d.stats.completed; fetchForView(); }
+  };
+  _es.onerror = () => {};   // EventSource auto-reconnects on drop
+}
+
+function getCommands() {
+  const cmds = NAV.map((n) => ({ label: "Go to " + n.label, icon: n.icon, hint: "view", run: () => go(n.id) }));
+  const paused = DATA.status && DATA.status.paused;
+  cmds.push({ label: "Add channel", icon: "plus", run: () => openChannelModal(ctx, null) });
+  cmds.push({ label: paused ? "Resume downloads" : "Pause downloads", icon: paused ? "play" : "pause", run: togglePause });
+  cmds.push({ label: "Scan all channels", icon: "scan", run: async () => { const ch = (await api("/api/channels")) || []; for (const c of ch) await api(`/api/channels/${c.id}/scan`, { method: "POST" }); } });
+  cmds.push({ label: "Backfill all channels", icon: "refresh", run: async () => { const ch = (await api("/api/channels")) || []; for (const c of ch) await api(`/api/channels/${c.id}/backfill`, { method: "POST" }); } });
+  cmds.push({ label: "Toggle theme", icon: "sun", run: cycleTheme });
+  cmds.push({ label: "Sign out", icon: "logout", run: () => { location.href = "/logout"; } });
+  return cmds;
+}
+
 // ── boot ──
 buildShell();
+initPalette(getCommands);
 go(active);
+connectSSE();
+// fallback poll: refreshes channels/logs + authorized flag; re-renders live views only if SSE is down
 setInterval(async () => {
   await fetchForView();
-  if (active === "dashboard" || active === "downloads") render();
-}, 2500);
+  const sseAlive = Date.now() - _lastSSE < 4000;
+  if (!sseAlive || (active !== "dashboard" && active !== "downloads")) render();
+}, 6000);

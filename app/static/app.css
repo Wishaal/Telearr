@@ -217,3 +217,63 @@ pre#logs { max-height: 66vh; overflow: auto; background: var(--surface-solid); b
 .login input { padding: 11px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--bg); color: var(--text); }
 .login .err { color: var(--err); font-size: 13px; text-align: center; margin: 0; }
 .login button { justify-content: center; }
+
+/* ============ v2.2 UI polish: identity, depth, wow ============ */
+:root { --grad: linear-gradient(135deg, #5b93ff, #35c46b); }
+
+/* subtle aurora depth behind the app */
+body { background-image:
+    radial-gradient(60vw 55vw at 88% -12%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 60%),
+    radial-gradient(48vw 48vw at -12% 112%, color-mix(in srgb, var(--ok) 11%, transparent), transparent 60%);
+  background-attachment: fixed; }
+
+/* gradient wordmark */
+.brand { font-weight: 650; }
+.brand span:last-child { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.brand .logo { filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--accent) 40%, transparent)); }
+
+/* micro-interactions */
+.btn, .nav-item, .bnav-item, .tab, .stat, .active-card, .grp, .card { transition: transform .14s ease, border-color .14s ease, background .14s ease, box-shadow .14s ease; }
+.btn:active { transform: scale(.97); }
+.stat:hover, .active-card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+.stat .n { letter-spacing: -.03em; }
+
+/* storage donut */
+.donut-wrap { display: grid; place-items: center; padding: 4px 0 10px; }
+.donut { width: 150px; height: 150px; }
+.donut-pct { fill: var(--text); font-size: 26px; font-weight: 750; letter-spacing: -.02em; }
+.donut-sub { fill: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+#donut-arc { transition: stroke-dashoffset .6s cubic-bezier(.4,0,.2,1); }
+
+/* live pulse on active status */
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
+.pill.s-downloading { position: relative; }
+.pill.s-downloading::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 5px; vertical-align: 1px; animation: pulse 1.3s ease-in-out infinite; }
+
+/* command palette ⌘K */
+.cmdk-btn kbd { font: 600 10.5px/1 ui-monospace, monospace; border: 1px solid var(--line); border-radius: 5px; padding: 2px 5px; color: var(--muted); background: var(--surface-2); }
+.cmdk { position: fixed; inset: 0; z-index: 80; background: rgba(3,6,12,.5); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: flex-start; padding: 12vh 16px 16px; }
+.cmdk-box { width: min(580px, 100%); background: color-mix(in srgb, var(--surface-solid) 92%, transparent); backdrop-filter: blur(16px); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 30px 80px rgba(0,0,0,.5); overflow: hidden; }
+.cmdk-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.cmdk-head .cmdk-k { color: var(--muted); display: inline-flex; }
+.cmdk-input { flex: 1; border: 0; background: transparent; color: var(--text); font-size: 16px; outline: none; }
+.cmdk-list { max-height: 52vh; overflow: auto; padding: 6px; }
+.cmdk-item { width: 100%; display: flex; align-items: center; gap: 11px; background: transparent; border: 0; border-radius: 9px; padding: 10px 12px; color: var(--text); text-align: left; }
+.cmdk-item .cmdk-ico { color: var(--muted); display: inline-flex; }
+.cmdk-item .cmdk-label { flex: 1; }
+.cmdk-item .cmdk-hint { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.cmdk-item.on { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.cmdk-item.on .cmdk-ico { color: var(--accent); }
+.cmdk-empty { padding: 22px; text-align: center; color: var(--muted); }
+.cmdk-foot { display: flex; align-items: center; gap: 5px; padding: 9px 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11.5px; }
+.cmdk kbd, .cmdk-foot kbd { font: 600 10.5px/1 ui-monospace, monospace; border: 1px solid var(--line); border-radius: 5px; padding: 2px 5px; background: var(--surface-2); }
+
+/* skeleton shimmer (for future loading states) */
+.skeleton { background: linear-gradient(90deg, var(--surface-2) 25%, var(--line) 37%, var(--surface-2) 63%); background-size: 400% 100%; animation: shimmer 1.3s ease infinite; border-radius: 8px; }
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+/* primary buttons get the gradient */
+.btn.primary { background: var(--grad); border: 0; box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 32%, transparent); }
+.btn.primary:hover { filter: brightness(1.06); }
+
+@media (max-width: 860px) { .cmdk-btn kbd { display: none; } .cmdk { padding-top: 8vh; } }

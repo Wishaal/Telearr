@@ -1,11 +1,14 @@
 # app/main.py — FastAPI app: auth, pages, and the JSON API.
 import os
 import time
+import json
+import asyncio
 import logging
 import contextlib
 
 from fastapi import FastAPI, Request, Form, Depends, HTTPException
-from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse, Response
+from fastapi.responses import (RedirectResponse, HTMLResponse, JSONResponse,
+                               Response, StreamingResponse)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -82,6 +85,52 @@ async def logout():
 @app.get("/healthz")
 async def healthz():
     return {"ok": True}
+
+
+def _live_snapshot():
+    import shutil
+    from .config import TV_DIR
+    with db.conn() as c:
+        stats = {k: c.execute(q).fetchone()[0] for k, q in {
+            "channels": "SELECT COUNT(*) FROM channels",
+            "queued": "SELECT COUNT(*) FROM downloads WHERE status='queued'",
+            "downloading": "SELECT COUNT(*) FROM downloads WHERE status='downloading'",
+            "completed": "SELECT COUNT(*) FROM downloads WHERE status='completed'",
+            "failed": "SELECT COUNT(*) FROM downloads WHERE status='failed'",
+        }.items()}
+        stats["total_size"] = c.execute(
+            "SELECT COALESCE(SUM(file_size),0) FROM downloads WHERE status='completed'").fetchone()[0]
+        active = [dict(r) for r in c.execute(
+            "SELECT d.*, ch.title AS channel_title FROM downloads d "
+            "LEFT JOIN channels ch ON ch.id=d.channel_id "
+            "WHERE d.status IN ('downloading','queued') ORDER BY d.id")]
+    root = TV_DIR
+    for _ in range(4):
+        if os.path.exists(root):
+            break
+        root = os.path.dirname(root)
+    try:
+        total, used, free = shutil.disk_usage(root if os.path.exists(root) else "/")
+    except Exception:
+        total = used = free = 0
+    return {"stats": stats, "active": active, "paused": settings.get_bool("paused", False),
+            "disk": {"total": total, "used": used, "free": free},
+            "speed": round(sum(a.get("speed_mbs") or 0 for a in active), 1)}
+
+
+@app.get("/api/events")
+async def api_events(request: Request, user=Depends(auth.require_user)):
+    """Server-sent events: live stats + active downloads (~1s), for real-time UI."""
+    async def gen():
+        try:
+            while not await request.is_disconnected():
+                yield f"data: {json.dumps(_live_snapshot())}\n\n"
+                await asyncio.sleep(1.0)
+        except asyncio.CancelledError:
+            pass
+    return StreamingResponse(gen(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no",
+                                      "Connection": "keep-alive"})
 
 
 # ── status ────────────────────────────────────────────────────────────

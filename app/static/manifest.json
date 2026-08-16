@@ -1,0 +1,13 @@
+{
+  "name": "Telearr",
+  "short_name": "Telearr",
+  "description": "Bring Telegram into your *arr stack — auto-download channel media into a Plex-ready library.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0d13",
+  "theme_color": "#0a0d13",
+  "icons": [
+    { "src": "/static/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

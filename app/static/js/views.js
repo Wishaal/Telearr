@@ -1,5 +1,5 @@
 // views.js — each view builds real DOM via h(); handlers are attached inline.
-import { h, api, jpost, jpatch, toast, copy, gb, fmtBytes, fmtETA, base } from "./core.js";
+import { h, mount, api, jpost, jpatch, toast, copy, gb, fmtBytes, fmtETA, base } from "./core.js";
 import { icon } from "./icons.js";
 
 const ACTIVE = new Set(["downloading", "queued"]);
@@ -20,9 +20,36 @@ const card = (title, ...body) => h("section", { class: "card" },
 
 const statusPill = (s) => h("span", { class: `pill s-${s}` }, s);
 
-function statCard(n, label, tone = "") {
-  return h("div", { class: "stat" }, h("div", { class: `n ${tone}` }, n), h("div", { class: "l" }, label));
+function statCard(n, label, tone = "", key = "") {
+  return h("div", { class: "stat" },
+    h("div", { class: `n ${tone}`, dataset: key ? { stat: key } : {} }, n),
+    h("div", { class: "l" }, label));
 }
+
+function countUp(el, to) {
+  if (typeof requestAnimationFrame !== "function" || typeof performance === "undefined") { el.textContent = to; return; }
+  const start = performance.now(), dur = 650;
+  const tick = (t) => {
+    const p = Math.min(1, (t - start) / dur);
+    el.textContent = Math.round(to * (1 - Math.pow(1 - p, 3)));
+    if (p < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+function donutSvg(disk) {
+  const pct = disk && disk.total ? disk.used / disk.total : 0;
+  const R = 54, C = 2 * Math.PI * R, off = C * (1 - pct), warn = pct > 0.9;
+  return `<svg viewBox="0 0 140 140" class="donut" aria-hidden="true">
+    <defs><linearGradient id="dgrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b93ff"/><stop offset="1" stop-color="#35c46b"/></linearGradient></defs>
+    <circle cx="70" cy="70" r="${R}" fill="none" stroke="var(--surface-2)" stroke-width="13"/>
+    <circle id="donut-arc" cx="70" cy="70" r="${R}" fill="none" stroke="${warn ? "var(--err)" : "url(#dgrad)"}" stroke-width="13" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 70 70)"/>
+    <text id="donut-pct" x="70" y="72" text-anchor="middle" class="donut-pct">${Math.round(pct * 100)}%</text>
+    <text x="70" y="92" text-anchor="middle" class="donut-sub">used</text>
+  </svg>`;
+}
+
+const diskLegend = (disk) => [h("span", {}, `${fmtBytes(disk.used || 0)} used`), h("span", {}, `${fmtBytes(disk.free || 0)} free`)];
 
 function activeCard(d, ctx) {
   const pct = Math.round((d.progress || 0) * 100), eta = fmtETA(d);
@@ -47,23 +74,45 @@ const activeList = (downloads, ctx) => {
 
 // ── Dashboard ──
 export function viewDashboard(ctx) {
-  const s = ctx.data.status; const st = s?.stats || {};
-  const d = s?.disk || {}; const pct = d.total ? Math.round((d.used / d.total) * 100) : 0;
-  return h("div", { class: "stack" },
-    h("div", { class: "stat-cards" },
-      statCard(st.channels ?? "—", "Channels"),
-      statCard(st.downloading ?? 0, "Downloading", "accent"),
-      statCard(st.queued ?? 0, "Queued", "warn"),
-      statCard(st.completed ?? 0, "Completed", "ok"),
-      statCard(st.failed ?? 0, "Failed", st.failed ? "err" : ""),
-      statCard(fmtBytes(st.total_size || 0), "Library")),
+  const st = (ctx.data.status && ctx.data.status.stats) || {};
+  const disk = (ctx.data.status && ctx.data.status.disk) || {};
+  const cards = h("div", { class: "stat-cards" },
+    statCard(st.channels ?? 0, "Channels", "", "channels"),
+    statCard(st.downloading ?? 0, "Downloading", "accent", "downloading"),
+    statCard(st.queued ?? 0, "Queued", "warn", "queued"),
+    statCard(st.completed ?? 0, "Completed", "ok", "completed"),
+    statCard(st.failed ?? 0, "Failed", st.failed ? "err" : "", "failed"),
+    statCard(fmtBytes(st.total_size || 0), "Library", "", "lib"));
+  const root = h("div", { class: "stack" },
+    cards,
     h("div", { class: "grid-2" },
       card("Storage",
-        h("div", { class: `meter ${pct > 90 ? "warn" : ""}` }, h("i", { style: `width:${pct}%` })),
-        h("div", { class: "meter-legend" },
-          h("span", {}, `${fmtBytes(d.used || 0)} used (${pct}%)`),
-          h("span", {}, `${fmtBytes(d.free || 0)} free of ${fmtBytes(d.total || 0)}`))),
-      card("Active now", h("div", { class: "active-list" }, ...activeList(ctx.data.downloads, ctx)))));
+        h("div", { class: "donut-wrap", html: donutSvg(disk) }),
+        h("div", { class: "meter-legend", id: "disk-legend" }, ...diskLegend(disk))),
+      card("Active now", h("div", { class: "active-list", id: "dash-active" }, ...activeList(ctx.data.downloads, ctx)))));
+  setTimeout(() => root.querySelectorAll("[data-stat]").forEach((el) => {
+    if (el.dataset.stat === "lib") return;
+    const v = parseInt(el.textContent); if (!isNaN(v)) { el.textContent = "0"; countUp(el, v); }
+  }), 0);
+  return root;
+}
+
+// in-place dashboard refresh driven by SSE (smooth, avoids re-animating counters)
+export function liveDashboard(ctx) {
+  const st = (ctx.data.status && ctx.data.status.stats) || {};
+  const disk = (ctx.data.status && ctx.data.status.disk) || {};
+  const set = (k, v) => { const el = document.querySelector(`[data-stat="${k}"]`); if (el) el.textContent = v; };
+  set("channels", st.channels ?? 0); set("downloading", st.downloading ?? 0);
+  set("queued", st.queued ?? 0); set("completed", st.completed ?? 0);
+  set("failed", st.failed ?? 0); set("lib", fmtBytes(st.total_size || 0));
+  if (disk.total) {
+    const R = 54, C = 2 * Math.PI * R, pct = disk.used / disk.total;
+    const arc = document.querySelector("#donut-arc"), pctEl = document.querySelector("#donut-pct");
+    if (arc) arc.setAttribute("stroke-dashoffset", (C * (1 - pct)).toFixed(1));
+    if (pctEl) pctEl.textContent = Math.round(pct * 100) + "%";
+    const leg = document.querySelector("#disk-legend"); if (leg) mount(leg, ...diskLegend(disk));
+  }
+  const da = document.querySelector("#dash-active"); if (da) mount(da, ...activeList(ctx.data.downloads, ctx));
 }
 
 // ── Channels ──
@@ -190,9 +239,12 @@ export function viewDownloads(ctx) {
     : (() => { const rows = dls.filter((d) => d.status === ui.tab && matchQ(d)); return rows.length ? h("div", { class: "data-card" }, rowsTable(sortRows(rows), ctx)) : h("div", { class: "empty" }, "Nothing here."); })();
 
   return h("div", { class: "stack" },
-    h("div", { class: "active-list" }, ...activeList(dls, ctx)),
+    h("div", { class: "active-list", id: "dl-active" }, ...activeList(dls, ctx)),
     controls, bulk, body);
 }
+
+// live active-download list (used by SSE to update without rebuilding the whole view)
+export const liveActive = (ctx) => activeList(ctx.data.downloads, ctx);
 
 // ── Activity (logs) ──
 export function viewActivity(ctx) {
