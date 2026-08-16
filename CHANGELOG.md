@@ -1,6 +1,19 @@
 # Changelog
 
-## Unreleased — PWA & UX polish
+## 2.3.0 — Multi-source shows, PWA & mobile polish (2026-08-16)
+
+### Multi-source shows
+- **Per-show download de-duplication** — several source channels can feed one
+  title (shared IMDb mapping). When one channel goes stale and another posts the
+  new episode, Telearr no longer re-downloads episodes a sibling source already
+  has (dedup spans every channel sharing the mapping).
+- **Channels grouped by show** — source channels for one title collapse into a
+  single poster card ("N sources"); the detail drawer lists each source with
+  per-source enable/edit/remove and Scan/Backfill acting on all sources at once.
+- **Downloads grouped by show** — completed items group by library folder, not
+  by channel, so a multi-source show is one group.
+
+### PWA & UX polish
 - **Dashboard redesign** — the six big equal-weight tiles become a compact stat
   strip, and the page is no longer hollow when idle: new **Up next** (soonest
   scheduled channel scans) and **Recently grabbed** (last downloads) panels.
@@ -16,7 +29,7 @@
   past 95% (alarm colour reserved for alarms); the mobile bottom nav is capped
   at five items (Activity stays in the sidebar and ⌘K).
 
-## Unreleased — security hardening
+### Security
 - **Login throttling** — eight failed attempts from one client inside five
   minutes locks that client out for fifteen. Successful logins reset the
   counter; existing sessions are unaffected. Failures and lockouts are logged.
@@ -32,6 +45,23 @@
 - The admin username defaults to `admin`, and the media root and bind address
   are configured via `TELEARR_MEDIA_ROOT` / `TELEARR_BIND_ADDR` rather than
   being hardcoded to one machine's layout.
+
+### Mobile
+- Fixed the System health rows (status badge no longer orphaned onto its own
+  line), the dashboard "Active now" idle state (no longer blanked by live
+  updates), and list overflow in "Up next" / "Recently grabbed".
+- Compact stat tiles and a clearer, more opaque fixed bottom nav; poster-card
+  actions move into the detail drawer on touch instead of stacking.
+
+### Account & branding
+- **Change username** from Settings → Account (re-issues the session cookie so
+  you stay signed in); Settings reorganised into tabs (Account / Downloads /
+  Integrations).
+- **Structured Activity log** — severity badges, relative times, search, and
+  collapse of repeated lines into a single `×N` row.
+- Copy-to-clipboard now works over plain-HTTP LAN (legacy fallback).
+- New **original logo/icons** (no third-party marks) plus `docs/LEGAL.md`,
+  `NOTICE`, TMDB attribution, and not-affiliated disclaimers.
 
 ## 2.2.0 — Redesign, System panel & Python 3.14 (2026-08-16)
 
