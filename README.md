@@ -163,6 +163,42 @@ To use it instead of building locally, set the image in `docker-compose.yml`
 (replace `build: .` with `image: ghcr.io/wishaal/telearr:latest`) and run
 `docker compose up -d`.
 
+## HTTPS & installing as an app (PWA)
+
+Telearr is an installable PWA (app icon, standalone window, offline shell). Two
+browser features it uses — **service-worker install/offline** and
+**copy-to-clipboard** — require a **secure context**: `https://…` or
+`http://localhost`. Over a plain-HTTP LAN address (`http://192.168.x.x:8790`)
+they're disabled by the browser (iOS "Add to Home Screen" still works, but
+Android's install prompt and offline won't). Put Telearr behind HTTPS to get the
+full experience — two easy options:
+
+**Option A — Tailscale Serve** (simplest; no domain or certs to manage):
+
+```bash
+# with Telearr running on :8790 and Tailscale installed on the host
+tailscale serve --bg 8790
+# now open https://<your-machine>.<tailnet>.ts.net  (valid cert, PWA installs)
+```
+
+**Option B — Caddy reverse proxy** (own domain, automatic Let's Encrypt certs):
+
+```caddy
+# Caddyfile
+telearr.example.com {
+    reverse_proxy 127.0.0.1:8790
+}
+```
+
+```bash
+caddy run   # or: docker run -p 443:443 -v $PWD/Caddyfile:/etc/caddy/Caddyfile caddy
+```
+
+Caddy terminates TLS and forwards to Telearr; the app already reads
+`X-Forwarded-Proto`, so it marks the session cookie `Secure` automatically. Then
+open `https://telearr.example.com` and use your browser's **Install app** action
+(Chrome/Edge address-bar icon, or iOS Share → Add to Home Screen).
+
 ## Configuration
 
 Telearr is configured in two complementary places.

@@ -65,21 +65,6 @@ function donutSvg(disk) {
 
 const diskLegend = (disk) => [h("span", {}, `${fmtBytes(disk.used || 0)} used`), h("span", {}, `${fmtBytes(disk.free || 0)} free`)];
 
-const SPEED_HIST = [];
-const SPARK_SVG = '<svg viewBox="0 0 260 52" class="spark" preserveAspectRatio="none">'
-  + '<defs><linearGradient id="sgrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0071e3"/><stop offset="1" stop-color="#2997ff"/></linearGradient>'
-  + '<linearGradient id="sfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0071e3" stop-opacity=".16"/><stop offset="1" stop-color="#0071e3" stop-opacity="0"/></linearGradient></defs>'
-  + '<polygon id="spark-area" fill="url(#sfill)" points=""/>'
-  + '<polyline id="spark-line" fill="none" stroke="url(#sgrad)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points=""/></svg>';
-function drawSpark() {
-  const line = document.querySelector("#spark-line"), area = document.querySelector("#spark-area");
-  if (!line || SPEED_HIST.length < 2) return;
-  const w = 260, hgt = 52, max = Math.max(0.5, ...SPEED_HIST), step = w / (SPEED_HIST.length - 1);
-  const pts = SPEED_HIST.map((v, i) => `${(i * step).toFixed(1)},${(hgt - (v / max) * (hgt - 6) - 3).toFixed(1)}`);
-  line.setAttribute("points", pts.join(" "));
-  if (area) area.setAttribute("points", `0,${hgt} ${pts.join(" ")} ${w},${hgt}`);
-}
-
 function activeCard(d, ctx) {
   const pct = Math.round((d.progress || 0) * 100), eta = fmtETA(d);
   return h("div", { class: "active-card" },
@@ -124,19 +109,20 @@ export function viewDashboard(ctx) {
     statCard(st.completed ?? 0, "Completed", "ok", "completed", () => goto("#/downloads", "completed")),
     statCard(st.failed ?? 0, "Failed", st.failed ? "err" : "", "failed", () => goto("#/downloads", "failed")),
     statCard(fmtBytes(st.total_size || 0), "Library", "", "lib", () => goto("#/channels")));
+  const activeSection = h("section", { class: "card" },
+    h("div", { class: "card-h dash-active-head" },
+      h("span", {}, "Active now"),
+      h("span", { class: "dash-speed mono", id: "dash-speed" }, speed > 0 ? speed.toFixed(1) + " MB/s" : "")),
+    h("div", { class: "active-list", id: "dash-active" }, ...activeList(ctx.data.downloads, ctx)));
   const root = h("div", { class: "stack" },
     strip,
-    card("Active now", h("div", { class: "active-list", id: "dash-active" }, ...activeList(ctx.data.downloads, ctx))),
+    activeSection,
     h("div", { class: "grid-2" },
       card("Up next", h("div", { class: "upnext", id: "dash-upnext" }, h("div", { class: "empty small" }, "Loading…"))),
-      card("Recently grabbed", h("div", { class: "recent-list" }, ...recentList(ctx.data.downloads)))),
-    h("div", { class: "grid-2" },
       card("Storage",
         h("div", { class: "donut-wrap", html: donutSvg(disk) }),
-        h("div", { class: "meter-legend", id: "disk-legend" }, ...diskLegend(disk))),
-      card("Download speed",
-        h("div", { class: "spark-val", id: "spark-val" }, speed.toFixed(1) + " MB/s"),
-        h("div", { class: "spark-wrap", html: SPARK_SVG }))));
+        h("div", { class: "meter-legend", id: "disk-legend" }, ...diskLegend(disk)))),
+    card("Recently grabbed", h("div", { class: "recent-list" }, ...recentList(ctx.data.downloads))));
   // Up next: soonest scheduled channel scans (async — fills the idle dashboard).
   (async () => {
     const tasks = await api("/api/system/tasks");
@@ -153,7 +139,6 @@ export function viewDashboard(ctx) {
       if (el.dataset.stat === "lib") return;
       const v = parseInt(el.textContent); if (!isNaN(v)) { el.textContent = "0"; countUp(el, v); }
     });
-    drawSpark();
   }, 0);
   return root;
 }
@@ -175,9 +160,7 @@ export function liveDashboard(ctx) {
   }
   const da = document.querySelector("#dash-active"); if (da) mount(da, ...activeList(ctx.data.downloads, ctx));
   const speed = (ctx.data.status && ctx.data.status.speed) || 0;
-  SPEED_HIST.push(speed); if (SPEED_HIST.length > 40) SPEED_HIST.shift();
-  const sv = document.querySelector("#spark-val"); if (sv) sv.textContent = speed.toFixed(1) + " MB/s";
-  drawSpark();
+  const sp = document.querySelector("#dash-speed"); if (sp) sp.textContent = speed > 0 ? speed.toFixed(1) + " MB/s" : "";
 }
 
 // ── Channels (poster library) ──
