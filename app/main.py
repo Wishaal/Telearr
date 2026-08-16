@@ -12,7 +12,7 @@ from fastapi.responses import (RedirectResponse, HTMLResponse, JSONResponse,
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import db, auth, scanner, settings, plex, notify, arr, tmdb, tg, system
+from . import db, auth, scanner, settings, plex, notify, arr, tmdb, tg, system, __version__
 from .tg import get_client
 from .namer import imdb_search
 from .config import summary
@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
         await client.disconnect()
 
 
-app = FastAPI(title="Telearr", version="2.1.0", lifespan=lifespan)
+app = FastAPI(title="Telearr", version=__version__, lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=os.path.join(HERE, "static")), name="static")
 
 

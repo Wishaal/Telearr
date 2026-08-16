@@ -10,11 +10,10 @@ import platform
 
 import httpx
 
-from . import db, settings
+from . import db, settings, __version__ as VERSION
 from .config import (DATA_DIR, DB_PATH, TV_DIR, MIN_FREE_SPACE_GB,
                      DL_WORKERS, MAX_CONCURRENT_DOWNLOADS)
 
-VERSION = "2.1.0"
 START_TIME = time.time()
 BACKUP_DIR = os.path.join(DATA_DIR, "backups")
 GITHUB_REPO = "Wishaal/Telearr"

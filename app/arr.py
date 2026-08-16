@@ -7,9 +7,8 @@ import time
 import html
 import re
 import secrets
-from . import db, settings
+from . import db, settings, __version__ as VERSION
 
-VERSION = "2.1.0"
 SAB_VERSION = "4.2.0"        # advertise a modern SABnzbd to the *arr clients
 
 

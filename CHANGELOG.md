@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased — System panel
+## 2.2.0 — Redesign, System panel & Python 3.14 (2026-08-16)
+
+### System panel
 - New **System** area (like Sonarr/Radarr) with four tabs:
   - **Status** — live health checks (Telegram, scanner, disk space, download
     queue, database integrity) plus app/host info (version, Python, platform,
@@ -14,7 +16,7 @@
 - New `app/system.py` module and `/api/system/*` endpoints (auth-guarded;
   backup filenames validated against path traversal).
 
-## Unreleased — Python 3.14 + dependency refresh
+### Python 3.14 + dependency refresh
 - Runtime moved to **Python 3.14-slim**; CI now tests on 3.14 to match.
 - Bumped **cryptg** 0.5.0.post0 → 0.5.2 (ships prebuilt cp314 wheels, so the
   AES-NI backend keeps working on 3.14; still compatible with 3.13).
@@ -22,7 +24,7 @@
   ruff 0.16, pytest 9.1, pytest-asyncio 1.4; GitHub Actions checkout@v7 /
   setup-python@v7.
 
-## Unreleased — Apple-inspired redesign
+### Apple-inspired redesign
 - Rebuilt the entire visual language around a precision-editorial **Apple**
   aesthetic: pale-gray/white surfaces, SF Pro typography, a single restrained
   blue accent, signature blue-capsule CTAs, iOS-style toggles, purposeful radii
@@ -30,8 +32,6 @@
 - **Light and dark are both first-class** (system-aware, plus the theme toggle).
 - New clean blue app logo/favicon; donut, sparkline, poster grid, hero drawer,
   command palette, and login all reskinned; screenshots recaptured in light mode.
-
-## Unreleased — UI overhaul + Telegram onboarding
 
 ### Telegram
 - **In-app sign-in wizard** — connect an account entirely from the browser
