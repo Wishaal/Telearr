@@ -175,38 +175,55 @@ function loadArt(imdb, img, poster) {
   api(`/api/art?imdb=${encodeURIComponent(imdb)}`).then((a) => { _artCache.set(imdb, a || {}); apply(a || {}); });
 }
 
-function channelCard(c, ctx) {
+// A "show" is one or more source channels sharing an IMDb mapping. Grouping
+// lets several channels feed one title (some go stale, others post the new ep).
+const showKey = (c) => (c.imdb_id || "").trim() || (c.imdb_title || "").trim() || ("ch:" + c.id);
+const scanAll = async (group) => { for (const c of group) await api(`/api/channels/${c.id}/scan`, { method: "POST" }); toast(`Scanning ${group.length} source${group.length > 1 ? "s" : ""}`, "ok"); };
+const backfillAll = async (group) => { for (const c of group) await api(`/api/channels/${c.id}/backfill`, { method: "POST" }); toast("Backfill started", "ok"); };
+
+function showCard(group, ctx) {
+  const rep = group.find((c) => c.imdb_id) || group[0];
+  const multi = group.length > 1;
   const days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
-  const dstr = (c.weekdays || "").split(",").filter((x) => x !== "").map((i) => days[i]).join(" ");
+  const dstr = (rep.weekdays || "").split(",").filter((x) => x !== "").map((i) => days[i]).join(" ");
+  const anyEnabled = group.some((c) => c.enabled);
   const img = h("img", { class: "poster-img", alt: "", loading: "lazy" });
-  const poster = h("div", { class: "poster", onClick: () => openChannelDrawer(ctx, c) },
+  const poster = h("div", { class: "poster", onClick: () => openChannelDrawer(ctx, rep, group) },
     h("span", { class: "poster-fallback", html: icon("film") }), img,
-    h("button", { class: `toggle ch-toggle ${c.enabled ? "on" : ""}`, title: c.enabled ? "Enabled" : "Disabled", "aria-label": "Toggle channel",
-      onClick: async (e) => { e.stopPropagation(); await jpatch(`/api/channels/${c.id}`, { enabled: c.enabled ? 0 : 1 }); ctx.refresh(); } }));
-  loadArt(c.imdb_id, img, poster);
-  if (!c.imdb_id) poster.classList.add("art-done");
+    multi ? h("span", { class: "src-badge" }, group.length + " sources") : null,
+    h("button", { class: `toggle ch-toggle ${anyEnabled ? "on" : ""}`, title: anyEnabled ? "Enabled" : "Disabled", "aria-label": "Toggle",
+      onClick: async (e) => { e.stopPropagation(); const to = anyEnabled ? 0 : 1; for (const c of group) await jpatch(`/api/channels/${c.id}`, { enabled: to }); ctx.refresh(); } }));
+  loadArt(rep.imdb_id, img, poster);
+  if (!rep.imdb_id) poster.classList.add("art-done");
   return h("div", { class: "ch-card" }, poster,
     h("div", { class: "ch-body" },
-      h("div", { class: "ch-title", title: c.imdb_title || c.title }, c.imdb_title || c.title),
-      h("div", { class: "ch-meta" }, `${c.kind} · ${dstr || "—"} · ${c.poll_minutes}m`),
+      h("div", { class: "ch-title", title: rep.imdb_title || rep.title }, rep.imdb_title || rep.title),
+      h("div", { class: "ch-meta" }, multi ? `${rep.kind} · ${group.length} sources` : `${rep.kind} · ${dstr || "—"} · ${rep.poll_minutes}m`),
       h("div", { class: "ch-actions" },
-        h("button", { class: "btn ghost sm", onClick: async () => { await api(`/api/channels/${c.id}/scan`, { method: "POST" }); toast("Scan started", "ok"); } }, h("span", { html: icon("scan") }), "Scan"),
-        h("button", { class: "btn ghost sm", onClick: async () => { await api(`/api/channels/${c.id}/backfill`, { method: "POST" }); toast("Backfill started", "ok"); } }, "Backfill"),
-        h("button", { class: "btn ghost sm icon", title: "Edit", "aria-label": "Edit channel", onClick: () => openChannelModal(ctx, c) }, h("span", { html: icon("edit") })),
-        h("button", { class: "btn ghost sm icon", title: "Remove", "aria-label": "Remove channel", onClick: async () => { if (confirm("Remove this channel? Download history is kept.")) { await api(`/api/channels/${c.id}`, { method: "DELETE" }); toast("Channel removed", "ok"); ctx.refresh(); } } }, h("span", { html: icon("trash") })))));
+        h("button", { class: "btn ghost sm", onClick: () => scanAll(group) }, h("span", { html: icon("scan") }), "Scan"),
+        h("button", { class: "btn ghost sm", onClick: () => backfillAll(group) }, "Backfill"),
+        multi
+          ? h("button", { class: "btn ghost sm", onClick: () => openChannelDrawer(ctx, rep, group) }, h("span", { html: icon("channels") }), "Sources")
+          : h("button", { class: "btn ghost sm icon", title: "Edit", "aria-label": "Edit channel", onClick: () => openChannelModal(ctx, rep) }, h("span", { html: icon("edit") })),
+        multi ? null
+          : h("button", { class: "btn ghost sm icon", title: "Remove", "aria-label": "Remove channel", onClick: async () => { if (confirm("Remove this channel? Download history is kept.")) { await api(`/api/channels/${rep.id}`, { method: "DELETE" }); toast("Channel removed", "ok"); ctx.refresh(); } } }, h("span", { html: icon("trash") })))));
 }
 
 export function viewChannels(ctx) {
   const rows = ctx.data.channels || [];
   if (!rows.length) return emptyState("channels", "No channels yet", "Add a Telegram channel to start grabbing episodes.", "Add channel", () => openChannelModal(ctx, null));
-  return h("div", { class: "ch-grid" }, ...rows.map((c) => channelCard(c, ctx)));
+  const groups = new Map();
+  for (const c of rows) { const k = showKey(c); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(c); }
+  return h("div", { class: "ch-grid" }, ...[...groups.values()].map((g) => showCard(g, ctx)));
 }
 
 // hero-backdrop detail drawer for a channel
-export function openChannelDrawer(ctx, c) {
+export function openChannelDrawer(ctx, c, group = null) {
   const host = document.querySelector("#modal-root");
+  const grp = group && group.length ? group : [c];
+  const ids = new Set(grp.map((x) => x.id));
   const art = _artCache.get(c.imdb_id) || {};
-  const eps = (ctx.data.downloads || []).filter((d) => d.channel_id === c.id && d.status === "completed")
+  const eps = (ctx.data.downloads || []).filter((d) => ids.has(d.channel_id) && d.status === "completed")
     .sort((a, b) => (b.finished_at || 0) - (a.finished_at || 0));
   const hero = h("div", { class: "hero" });
   const posterBox = h("div", { class: "drawer-poster" });
@@ -234,9 +251,19 @@ export function openChannelDrawer(ctx, c) {
           h("div", { class: "drawer-info" },
             h("h2", {}, c.imdb_title || c.title), meta, overview,
             h("div", { class: "drawer-actions" },
-              h("button", { class: "btn primary sm", onClick: async () => { await api(`/api/channels/${c.id}/scan`, { method: "POST" }); toast("Scan started", "ok"); } }, h("span", { html: icon("scan") }), "Scan"),
-              h("button", { class: "btn ghost sm", onClick: async () => { await api(`/api/channels/${c.id}/backfill`, { method: "POST" }); toast("Backfill started", "ok"); } }, "Backfill"),
-              h("button", { class: "btn ghost sm", onClick: () => { close(); openChannelModal(ctx, c); } }, h("span", { html: icon("edit") }), "Edit")))),
+              h("button", { class: "btn primary sm", onClick: () => scanAll(grp) }, h("span", { html: icon("scan") }), "Scan"),
+              h("button", { class: "btn ghost sm", onClick: () => backfillAll(grp) }, "Backfill"),
+              grp.length === 1
+                ? h("button", { class: "btn ghost sm", onClick: () => { close(); openChannelModal(ctx, c); } }, h("span", { html: icon("edit") }), "Edit")
+                : null))),
+        grp.length > 1 ? h("div", { class: "drawer-eps" },
+          h("div", { class: "card-h" }, `${grp.length} source channels`),
+          ...grp.map((s) => h("div", { class: "src-row" },
+            h("span", { class: "dot " + (s.enabled ? "ok" : "bad") }),
+            h("span", { class: "src-name", title: s.title }, s.title),
+            h("button", { class: "btn ghost sm", onClick: async () => { await jpatch(`/api/channels/${s.id}`, { enabled: s.enabled ? 0 : 1 }); close(); ctx.refresh(); } }, s.enabled ? "Disable" : "Enable"),
+            h("button", { class: "btn ghost sm", onClick: () => { close(); openChannelModal(ctx, s); } }, "Edit"),
+            h("button", { class: "btn ghost sm icon", title: "Remove source", "aria-label": "Remove source", onClick: async () => { if (confirm("Remove this source channel? Download history is kept.")) { await api(`/api/channels/${s.id}`, { method: "DELETE" }); toast("Source removed", "ok"); close(); ctx.refresh(); } } }, h("span", { html: icon("trash") }))))) : null,
         h("div", { class: "drawer-eps" },
           h("div", { class: "card-h" }, `${eps.length} episode${eps.length === 1 ? "" : "s"} downloaded`),
           ...(eps.length ? eps.slice(0, 60).map((d) => h("div", { class: "ep-row" },
