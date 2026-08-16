@@ -346,19 +346,40 @@ export function viewDownloads(ctx) {
 export const liveActive = (ctx) => activeList(ctx.data.downloads, ctx);
 
 // ── Activity (logs) ──
+function logRow(l) {
+  const cls = l.level === "ERROR" ? "lg-error" : l.level === "WARN" ? "lg-warn" : "lg-info";
+  return h("div", { class: "log-row" },
+    h("span", { class: "lg-badge " + cls }, l.level),
+    h("span", { class: "lg-msg" }, l.message,
+      l.count > 1 ? h("span", { class: "lg-count", title: `${l.count} times` }, "×" + l.count) : null),
+    h("span", { class: "lg-time mono", title: new Date(l.ts * 1000).toLocaleString() }, fmtWhen(l.ts)));
+}
 export function viewActivity(ctx) {
-  const pre = h("pre", { id: "logs" }, "Loading…");
+  const list = h("div", { class: "log-list", id: "log-list" }, h("div", { class: "empty" }, "Loading…"));
   const lvlSel = h("select", { class: "mini", onChange: () => load() },
     ...[["", "All levels"], ["ERROR", "Errors"], ["WARN", "Warnings"], ["INFO", "Info"]].map(([v, l]) => h("option", { value: v }, l)));
+  const search = h("input", { class: "mini", type: "search", placeholder: "Search log…", oninput: () => load() });
   async function load() {
-    const rows = await api("/api/logs?limit=300"); if (!rows) return;
-    const lvl = lvlSel.value;
-    const txt = rows.filter((l) => !lvl || l.level === lvl).reverse()
-      .map((l) => `${new Date(l.ts * 1000).toLocaleString()}  ${l.level.padEnd(5)}  ${l.message}`).join("\n");
-    pre.textContent = txt || "No log entries.";
+    const rows = await api("/api/logs?limit=500"); if (!rows) return;
+    const lvl = lvlSel.value, q = search.value.trim().toLowerCase();
+    const filtered = rows.filter((l) => (!lvl || l.level === lvl) && (!q || l.message.toLowerCase().includes(q)));
+    // Collapse consecutive identical entries into one row with a ×N count —
+    // otherwise a repeating error (e.g. every 30s) buries everything else.
+    const grouped = [];
+    for (const l of filtered) {
+      const last = grouped[grouped.length - 1];
+      if (last && last.level === l.level && last.message === l.message) { last.count++; last.ts = Math.max(last.ts, l.ts); }
+      else grouped.push({ ...l, count: 1 });
+    }
+    mount(list, grouped.length
+      ? h("div", {}, ...grouped.map(logRow))
+      : h("div", { class: "empty" }, "No matching log entries."));
   }
   load();
-  return h("div", { class: "stack" }, h("div", { class: "log-toolbar" }, lvlSel), pre);
+  const refresh = h("button", { class: "btn ghost sm", onClick: () => load() }, h("span", { html: icon("refresh") }), "Refresh");
+  return h("div", { class: "stack" },
+    h("div", { class: "log-toolbar" }, lvlSel, search, h("span", { class: "spacer", style: "flex:1" }), refresh),
+    list);
 }
 
 // ── System ──

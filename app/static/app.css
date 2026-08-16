@@ -196,10 +196,22 @@ body.dense .data-card th, body.dense .data-card td, body.dense .grp-body td { pa
 .grp-meta { color: var(--muted); font-size: 13px; margin-left: auto; margin-right: 8px; }
 .grp-body { border-top: 1px solid var(--line-soft); }
 
-/* logs */
-.log-toolbar { margin-bottom: 4px; }
-pre#logs { max-height: 66vh; overflow: auto; background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--radius);
-  color: var(--fg-2); font: 13px/1.7 var(--mono); margin: 0; padding: 18px 20px; box-shadow: var(--shadow); white-space: pre-wrap; word-break: break-word; }
+/* logs — structured, severity-coded, de-duplicated */
+.log-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
+.log-list { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--radius); box-shadow: var(--shadow); max-height: 72vh; overflow: auto; }
+.log-row { display: grid; grid-template-columns: 62px 1fr auto; gap: 14px; align-items: baseline; padding: 10px 18px; border-bottom: 1px solid var(--line-soft); font-size: 13.5px; }
+.log-row:last-child { border-bottom: 0; }
+.lg-badge { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 3px 0; border-radius: var(--r-pill); text-align: center; align-self: center; }
+.lg-error { color: var(--err); background: color-mix(in srgb, var(--err) 14%, transparent); }
+.lg-warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, transparent); }
+.lg-info { color: var(--muted); background: var(--surface-2); }
+.lg-msg { min-width: 0; line-height: 1.5; word-break: break-word; }
+.lg-count { color: var(--muted); font: 11px var(--mono); margin-left: 8px; background: var(--surface-2); padding: 1px 7px; border-radius: var(--r-pill); }
+.lg-time { color: var(--meta); font-size: 12px; white-space: nowrap; }
+@media (max-width: 620px) {
+  .log-row { grid-template-columns: 56px 1fr; row-gap: 2px; }
+  .lg-time { grid-column: 2; }
+}
 
 /* settings */
 .settings-grid { display: grid; gap: var(--sp); max-width: 780px; }
