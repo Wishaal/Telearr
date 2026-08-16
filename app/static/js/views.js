@@ -312,12 +312,19 @@ function rowsTable(rows, ctx, selectAll = true) {
   return h("table", {}, h("thead", {}, head), h("tbody", {}, ...body));
 }
 
+// Group by the SHOW (its library folder), not the channel — so multiple source
+// channels for one title collapse into a single group. Movies (no Season folder)
+// fall back to the channel name.
+function showOf(d) {
+  const m = (d.save_path || "").match(/\/([^/]+)\/Season\s[^/]*\/[^/]*$/i);
+  return m ? m[1] : (d.channel_title || "Unknown");
+}
 function completedGrouped(dls, ctx) {
   let rows = dls.filter((d) => d.status === "completed" && matchQ(d));
   if (ui.q) return rows.length ? h("div", { class: "data-card" }, rowsTable(sortRows(rows), ctx)) : h("div", { class: "empty" }, "No matches.");
   if (!rows.length) return h("div", { class: "empty" }, "Nothing downloaded yet.");
   const groups = {};
-  rows.forEach((d) => { const k = d.channel_title || "Unknown"; (groups[k] ||= []).push(d); });
+  rows.forEach((d) => { const k = showOf(d); (groups[k] ||= []).push(d); });
   return h("div", { class: "stack" }, ...Object.keys(groups).sort().map((name) => {
     const items = sortRows(groups[name]); const size = items.reduce((s, d) => s + (d.file_size || 0), 0);
     const open = ui.expanded.has(name);
