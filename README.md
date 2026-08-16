@@ -1,5 +1,10 @@
 # Telearr
 
+[![CI](https://github.com/Wishaal/Telearr/actions/workflows/ci.yml/badge.svg)](https://github.com/Wishaal/Telearr/actions/workflows/ci.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/Wishaal/Telearr)](https://github.com/Wishaal/Telearr/releases)
+![Python 3.13](https://img.shields.io/badge/python-3.13-blue)
+
 **Bring Telegram into your \*arr stack.** Telearr watches Telegram channels,
 auto-downloads the media they post into a clean, Plex-ready library, and exposes
 those channels to Sonarr, Radarr and Prowlarr as if they were a usenet indexer

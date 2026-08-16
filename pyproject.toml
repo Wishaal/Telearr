@@ -1,0 +1,12 @@
+# Tooling config for Telearr (the app ships via Docker, not pip — this is for dev tools).
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+# errors + pyflakes (unused/undefined/syntax). Style rules kept light for contributors.
+select = ["E4", "E7", "E9", "F"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

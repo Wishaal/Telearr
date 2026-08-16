@@ -1,7 +1,6 @@
 # app/main.py — FastAPI app: auth, pages, and the JSON API.
 import os
 import time
-import asyncio
 import logging
 import contextlib
 
@@ -13,7 +12,7 @@ from fastapi.templating import Jinja2Templates
 from . import db, auth, scanner, settings, plex, notify, arr
 from .tg import get_client
 from .namer import imdb_search
-from .config import BIND_PORT, summary
+from .config import summary
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(name)s %(message)s")
