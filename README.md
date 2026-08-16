@@ -125,6 +125,20 @@ docker compose down               # stop
 
 ---
 
+## Prebuilt image (GHCR)
+
+Every `v*.*.*` tag publishes a multi-arch image (amd64 + arm64) to the GitHub
+Container Registry:
+
+```
+ghcr.io/wishaal/telearr:latest        # newest release
+ghcr.io/wishaal/telearr:2.1.0         # pinned version
+```
+
+To use it instead of building locally, set the image in `docker-compose.yml`
+(replace `build: .` with `image: ghcr.io/wishaal/telearr:latest`) and run
+`docker compose up -d`.
+
 ## Configuration
 
 Telearr is configured in two complementary places.
