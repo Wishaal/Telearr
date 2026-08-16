@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — PWA & UX polish
+- **Installable PWA on Android & iOS** — real PNG app icons (192/512 + a 512
+  maskable), an `apple-touch-icon`, and a **service worker** (`/sw.js`, root
+  scope) that precaches the app shell for offline and serves static assets
+  cache-first. Registration is guarded to secure contexts. *(Install/offline
+  require HTTPS or localhost; see the README note.)*
+- UX: poster-card actions now reveal on hover (visible on touch) instead of
+  cluttering every card; the storage donut turns amber past 85% and red only
+  past 95% (alarm colour reserved for alarms); the mobile bottom nav is capped
+  at five items (Activity stays in the sidebar and ⌘K).
+
 ## Unreleased — security hardening
 - **Login throttling** — eight failed attempts from one client inside five
   minutes locks that client out for fifteen. Successful logins reset the

@@ -47,11 +47,14 @@ function countUp(el, to) {
 
 function donutSvg(disk) {
   const pct = disk && disk.total ? disk.used / disk.total : 0;
-  const R = 54, C = 2 * Math.PI * R, off = C * (1 - pct), warn = pct > 0.9;
+  const R = 54, C = 2 * Math.PI * R, off = C * (1 - pct);
+  // Graduated: healthy = brand blue, amber past 85%, red only past 95% — alarm
+  // colour is reserved for an actual alarm, not "disk filling up".
+  const stroke = pct > 0.95 ? "var(--err)" : pct > 0.85 ? "var(--warn)" : "url(#dgrad)";
   return `<svg viewBox="0 0 140 140" class="donut" aria-hidden="true">
     <defs><linearGradient id="dgrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0071e3"/><stop offset="1" stop-color="#2997ff"/></linearGradient></defs>
     <circle cx="70" cy="70" r="${R}" fill="none" stroke="var(--surface-2)" stroke-width="12"/>
-    <circle id="donut-arc" cx="70" cy="70" r="${R}" fill="none" stroke="${warn ? "var(--err)" : "url(#dgrad)"}" stroke-width="13" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 70 70)"/>
+    <circle id="donut-arc" cx="70" cy="70" r="${R}" fill="none" stroke="${stroke}" stroke-width="13" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 70 70)"/>
     <text id="donut-pct" x="70" y="72" text-anchor="middle" class="donut-pct">${Math.round(pct * 100)}%</text>
     <text x="70" y="92" text-anchor="middle" class="donut-sub">used</text>
   </svg>`;

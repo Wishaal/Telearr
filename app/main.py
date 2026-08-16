@@ -136,6 +136,15 @@ async def healthz():
     return {"ok": True}
 
 
+@app.get("/sw.js")
+async def service_worker():
+    # Served from the root so its scope covers the whole app (a /static/ path
+    # would only control /static/). Service-Worker-Allowed lifts the scope cap.
+    return FileResponse(os.path.join(HERE, "static", "sw.js"),
+                        media_type="application/javascript",
+                        headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"})
+
+
 def _live_snapshot():
     import shutil
     from .config import TV_DIR

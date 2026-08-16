@@ -60,7 +60,10 @@ function buildShell() {
       h("button", { class: "btn ghost cmdk-btn", title: "Command palette", "aria-label": "Open command palette (Ctrl/Cmd K)", onClick: openCommandPalette }, h("span", { html: icon("search") }), h("kbd", {}, "⌘K")),
       h("button", { id: "theme-toggle", class: "btn ghost icon", title: "Theme", "aria-label": "Toggle theme (auto/light/dark)", onClick: cycleTheme }, h("span", { html: icon("sun") })),
       h("div", { id: "ctx-actions" })));
-  const bottomNav = h("nav", { class: "bottom-nav" }, ...NAV.map((n) => navBtn(n, "bnav-item")));
+  // Mobile bottom nav is capped at 5 (iOS/Android guidance). Activity stays in
+  // the desktop sidebar and the ⌘K palette.
+  const BOTTOM_NAV = NAV.filter((n) => n.id !== "activity");
+  const bottomNav = h("nav", { class: "bottom-nav" }, ...BOTTOM_NAV.map((n) => navBtn(n, "bnav-item")));
   const banner = h("div", { id: "tg-banner", class: "tg-banner", hidden: true },
     h("span", {}, h("span", { class: "tgb-ic", html: icon("alert") }), " Telegram isn’t connected — Telearr can’t download until you sign in."),
     h("button", { class: "btn primary sm", onClick: () => openTelegramConnect(ctx) }, "Connect Telegram"));
@@ -160,6 +163,11 @@ buildShell();
 initPalette(getCommands);
 go(active);
 connectSSE();
+// PWA service worker — needs a secure context (https or localhost); silently
+// no-ops over plain-HTTP LAN, where install/offline aren't available anyway.
+if ("serviceWorker" in navigator && window.isSecureContext) {
+  navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
+}
 // fallback poll. Live views (dashboard/downloads) are driven by SSE; only re-render them
 // here if SSE has gone quiet. Static views (channels/activity/settings) are NEVER auto
 // re-rendered — that was resetting scroll/inputs. We only keep the shell status fresh.

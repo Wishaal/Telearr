@@ -307,7 +307,10 @@ pre#logs { max-height: 66vh; overflow: auto; background: var(--surface); border:
 .ch-body { padding: 14px 15px 15px; }
 .ch-title { font-weight: 600; font-size: 15px; letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ch-meta { color: var(--muted); font-size: 12.5px; margin: 4px 0 12px; text-transform: capitalize; }
-.ch-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.ch-actions { display: flex; flex-wrap: wrap; gap: 6px; opacity: 0; transition: opacity var(--t-fast); }
+.ch-card:hover .ch-actions, .ch-card:focus-within .ch-actions { opacity: 1; }
+/* touch devices have no hover — keep actions visible there */
+@media (hover: none) { .ch-actions { opacity: 1; } }
 .ch-actions .btn { padding: 6px 12px; font-size: 12.5px; }
 
 .empty-state { display: grid; place-items: center; gap: 12px; padding: 72px 16px; text-align: center; }
