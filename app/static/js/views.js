@@ -161,7 +161,11 @@ export function liveDashboard(ctx) {
     if (pctEl) pctEl.textContent = Math.round(pct * 100) + "%";
     const leg = document.querySelector("#disk-legend"); if (leg) mount(leg, ...diskLegend(disk));
   }
-  const da = document.querySelector("#dash-active"); if (da) mount(da, ...activeList(ctx.data.downloads, ctx));
+  const da = document.querySelector("#dash-active");
+  if (da) {
+    const items = activeList(ctx.data.downloads, ctx);
+    mount(da, ...(items.length ? items : [h("div", { class: "dash-idle muted small" }, "Nothing downloading right now.")]));
+  }
   const speed = (ctx.data.status && ctx.data.status.speed) || 0;
   const sp = document.querySelector("#dash-speed"); if (sp) sp.textContent = speed > 0 ? speed.toFixed(1) + " MB/s" : "";
 }
