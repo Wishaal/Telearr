@@ -12,12 +12,10 @@ const NAV = [
   { id: "settings", label: "Settings", icon: "settings", view: viewSettings },
 ];
 const TITLE = Object.fromEntries(NAV.map((n) => [n.id, n.label]));
-const LOGO = '<svg viewBox="0 0 64 64" width="26" height="26" aria-hidden="true">'
-  + '<defs><linearGradient id="brandg" x1="0" y1="0" x2="1" y2="1">'
-  + '<stop offset="0" stop-color="#5b93ff"/><stop offset="1" stop-color="#35c46b"/></linearGradient></defs>'
-  + '<rect width="64" height="64" rx="15" fill="url(#brandg)"/>'
+const LOGO = '<svg viewBox="0 0 64 64" width="27" height="27" aria-hidden="true">'
+  + '<rect width="64" height="64" rx="14" fill="#0071e3"/>'
   + '<path d="M14 27 L50 15 L41 50 L32 40 L26 45 L26 36 Z" fill="#fff"/>'
-  + '<path d="M32 40 L41 50 L32 44 Z" fill="#cfe0ff"/></svg>';
+  + '<path d="M26 36 L41 22 L26 45 Z" fill="#cfe3ff"/></svg>';
 
 let DATA = { status: null, downloads: [], channels: [] };
 let active = (location.hash.replace("#/", "") || "dashboard");

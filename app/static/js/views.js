@@ -49,8 +49,8 @@ function donutSvg(disk) {
   const pct = disk && disk.total ? disk.used / disk.total : 0;
   const R = 54, C = 2 * Math.PI * R, off = C * (1 - pct), warn = pct > 0.9;
   return `<svg viewBox="0 0 140 140" class="donut" aria-hidden="true">
-    <defs><linearGradient id="dgrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b93ff"/><stop offset="1" stop-color="#35c46b"/></linearGradient></defs>
-    <circle cx="70" cy="70" r="${R}" fill="none" stroke="var(--surface-2)" stroke-width="13"/>
+    <defs><linearGradient id="dgrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0071e3"/><stop offset="1" stop-color="#2997ff"/></linearGradient></defs>
+    <circle cx="70" cy="70" r="${R}" fill="none" stroke="var(--surface-2)" stroke-width="12"/>
     <circle id="donut-arc" cx="70" cy="70" r="${R}" fill="none" stroke="${warn ? "var(--err)" : "url(#dgrad)"}" stroke-width="13" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 70 70)"/>
     <text id="donut-pct" x="70" y="72" text-anchor="middle" class="donut-pct">${Math.round(pct * 100)}%</text>
     <text x="70" y="92" text-anchor="middle" class="donut-sub">used</text>
@@ -61,8 +61,8 @@ const diskLegend = (disk) => [h("span", {}, `${fmtBytes(disk.used || 0)} used`),
 
 const SPEED_HIST = [];
 const SPARK_SVG = '<svg viewBox="0 0 260 52" class="spark" preserveAspectRatio="none">'
-  + '<defs><linearGradient id="sgrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5b93ff"/><stop offset="1" stop-color="#35c46b"/></linearGradient>'
-  + '<linearGradient id="sfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b93ff" stop-opacity=".25"/><stop offset="1" stop-color="#5b93ff" stop-opacity="0"/></linearGradient></defs>'
+  + '<defs><linearGradient id="sgrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0071e3"/><stop offset="1" stop-color="#2997ff"/></linearGradient>'
+  + '<linearGradient id="sfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0071e3" stop-opacity=".16"/><stop offset="1" stop-color="#0071e3" stop-opacity="0"/></linearGradient></defs>'
   + '<polygon id="spark-area" fill="url(#sfill)" points=""/>'
   + '<polyline id="spark-line" fill="none" stroke="url(#sgrad)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points=""/></svg>';
 function drawSpark() {

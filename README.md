@@ -193,6 +193,12 @@ whether they are set, never their value.
 
 ## Screenshots
 
+Telearr wears an **Apple-inspired** design language — precision editorial calm
+with generous white space, SF Pro typography, a single restrained blue accent,
+purposeful radii, and softly restrained depth. Light and dark are both
+first-class. Posters and artwork carry the colour; the interface gets out of
+their way.
+
 | Dashboard — live stats, storage donut, download-speed graph | Channels — TMDB/IMDb poster library |
 | --- | --- |
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Channels](docs/screenshots/channels.png) |

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Apple-inspired redesign
+- Rebuilt the entire visual language around a precision-editorial **Apple**
+  aesthetic: pale-gray/white surfaces, SF Pro typography, a single restrained
+  blue accent, signature blue-capsule CTAs, iOS-style toggles, purposeful radii
+  (18px cards / 12px controls / 980px pills), and softly restrained depth.
+- **Light and dark are both first-class** (system-aware, plus the theme toggle).
+- New clean blue app logo/favicon; donut, sparkline, poster grid, hero drawer,
+  command palette, and login all reskinned; screenshots recaptured in light mode.
+
 ## Unreleased — UI overhaul + Telegram onboarding
 
 ### Telegram

@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0a0d13" media="(prefers-color-scheme: dark)">
-  <meta name="theme-color" content="#f5f7fb" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <title>Telearr — Sign in</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="/static/manifest.json">
@@ -13,14 +13,14 @@
 <body class="login">
   <form class="card" method="post" action="/login">
     <div class="login-brand">
-      <span class="login-logo"><svg viewBox="0 0 64 64" width="40" height="40" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b93ff"/><stop offset="1" stop-color="#35c46b"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(#lg)"/><path d="M14 27 L50 15 L41 50 L32 40 L26 45 L26 36 Z" fill="#fff"/><path d="M32 40 L41 50 L32 44 Z" fill="#cfe0ff"/></svg></span>
+      <span class="login-logo"><svg viewBox="0 0 64 64" width="44" height="44" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#0071e3"/><path d="M14 27 L50 15 L41 50 L32 40 L26 45 L26 36 Z" fill="#fff"/><path d="M26 36 L41 22 L26 45 Z" fill="#cfe3ff"/></svg></span>
       <span class="login-word">Tele<b>arr</b></span>
     </div>
-    <p class="login-sub">Bring Telegram into your ✳arr stack</p>
+    <p class="login-sub">Telegram, beautifully in your *arr stack</p>
     {% if error %}<p class="err">{{ error }}</p>{% endif %}
     <input name="username" placeholder="Username" autocomplete="username" required autofocus>
     <input name="password" type="password" placeholder="Password" autocomplete="current-password" required>
-    <button type="submit">Sign in</button>
+    <button type="submit" class="btn primary block">Sign in</button>
   </form>
 </body>
 </html>
