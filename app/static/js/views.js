@@ -358,7 +358,7 @@ export function viewSettings(ctx) {
       row("API key" + (s.tmdb_key_set ? " (saved)" : ""), inp("set-tmdb_key", "", "password")),
       h("div", { class: "set-actions" },
         h("button", { class: "btn primary sm", onClick: async () => { const tk = root.querySelector("#set-tmdb_key").value; if (tk) await jpatch("/api/settings", { tmdb_key: tk }); toast("TMDB key saved", "ok"); } }, "Save"),
-        h("button", { class: "btn ghost sm", onClick: async () => { const r = await api("/api/integrations/tmdb/test", { method: "POST" }); if (r) { tmdbOut.textContent = r.detail; tmdbOut.style.color = `var(--${r.ok ? "ok" : "err"})`; } } }, "Test"), tmdbOut));
+        h("button", { class: "btn ghost sm", onClick: async () => { tmdbOut.textContent = "Testing…"; tmdbOut.style.color = "var(--muted)"; const r = await jpost("/api/integrations/tmdb/test", { key: root.querySelector("#set-tmdb_key").value }); if (r) { tmdbOut.textContent = r.detail; tmdbOut.style.color = `var(--${r.ok ? "ok" : "err"})`; } } }, "Test"), tmdbOut));
 
     const keyInp = inp("arr-key", arrKey); keyInp.readOnly = true;
     const nzInp = inp("arr-nzb", `${location.origin}/api/newznab`); nzInp.readOnly = true;

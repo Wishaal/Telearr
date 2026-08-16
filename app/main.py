@@ -435,8 +435,8 @@ async def api_art(imdb: str = "", user=Depends(auth.require_user)):
 
 
 @app.post("/api/integrations/tmdb/test")
-async def api_tmdb_test(user=Depends(auth.require_user)):
-    return await tmdb.test()
+async def api_tmdb_test(payload: dict = None, user=Depends(auth.require_user)):
+    return await tmdb.test((payload or {}).get("key") or None)
 
 
 # ── *arr integration: Newznab indexer ─────────────────────────────────

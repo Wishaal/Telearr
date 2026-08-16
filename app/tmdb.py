@@ -84,15 +84,17 @@ async def art(imdb_id, title=""):
     return data
 
 
-async def test():
-    key = settings.get("tmdb_key", "")
-    if not key:
-        return {"ok": True, "detail": "No key set — posters use IMDb (keyless). Add a TMDB key for HD art + backdrops."}
+async def test(key=None):
+    # tests the passed-in key if given (so users can verify before saving), else the stored one
+    k = (key or settings.get("tmdb_key", "")).strip()
+    if not k:
+        return {"ok": True, "detail": "No key entered — posters load from IMDb automatically. A TMDB key adds HD art + backdrops."}
     try:
         async with httpx.AsyncClient() as client:
             r = await client.get("https://api.themoviedb.org/3/configuration",
-                                  params={"api_key": key}, timeout=10)
-        return {"ok": r.status_code < 400,
-                "detail": "Connected to TMDB" if r.status_code < 400 else f"HTTP {r.status_code} — check the key"}
+                                  params={"api_key": k}, timeout=10)
+        if r.status_code < 400:
+            return {"ok": True, "detail": "Connected to TMDB ✓"}
+        return {"ok": False, "detail": f"Invalid key (HTTP {r.status_code})"}
     except Exception as e:
         return {"ok": False, "detail": str(e)}
