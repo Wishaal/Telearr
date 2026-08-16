@@ -116,6 +116,22 @@ a:hover { text-decoration: underline; }
 .stat .n { font-family: var(--display); font-size: 34px; font-weight: 600; line-height: 1; letter-spacing: -.03em; font-feature-settings: "tnum"; }
 .stat .n.accent { color: var(--accent); } .stat .n.ok { color: var(--ok); } .stat .n.warn { color: var(--warn); } .stat .n.err { color: var(--err); }
 
+/* dashboard: compact stat strip + up-next / recently-grabbed */
+.stat-strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+.stat-strip .stat { padding: 14px 16px; }
+.stat-strip .stat .n { font-size: 24px; }
+.stat-strip .stat .l { margin-bottom: 4px; }
+.stat-link { cursor: pointer; }
+.stat-link:hover { border-color: var(--accent); background: var(--surface-2); }
+.stat-link:active { transform: scale(.99); }
+.upnext, .recent-list { display: grid; gap: 0; }
+.upnext-row, .recent-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line-soft); font-size: 14px; }
+.upnext-row:last-child, .recent-row:last-child { border-bottom: 0; }
+.un-name, .rc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.un-when, .rc-meta { color: var(--muted); font-size: 12.5px; flex: 0 0 auto; }
+@media (max-width: 860px) { .stat-strip { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 400px) { .stat-strip { grid-template-columns: repeat(2, 1fr); } }
+
 .meter { height: 8px; border-radius: var(--r-pill); background: var(--surface-2); overflow: hidden; }
 .meter > i { display: block; height: 100%; background: var(--accent); border-radius: var(--r-pill); transition: width var(--t-base); }
 .meter.warn > i { background: var(--warn); }

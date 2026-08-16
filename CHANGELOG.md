@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased — PWA & UX polish
+- **Dashboard redesign** — the six big equal-weight tiles become a compact stat
+  strip, and the page is no longer hollow when idle: new **Up next** (soonest
+  scheduled channel scans) and **Recently grabbed** (last downloads) panels.
+  Stat tiles are now clickable (Channels/Completed/Failed jump to that view,
+  keyboard-accessible).
 - **Installable PWA on Android & iOS** — real PNG app icons (192/512 + a 512
   maskable), an `apple-touch-icon`, and a **service worker** (`/sw.js`, root
   scope) that precaches the app shell for offline and serves static assets

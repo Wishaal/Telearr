@@ -28,11 +28,14 @@ function emptyState(ic, title, sub, btnLabel, onClick) {
     btnLabel ? h("button", { class: "btn primary", onClick }, btnLabel) : null);
 }
 
-function statCard(n, label, tone = "", key = "") {
-  return h("div", { class: "stat" },
+function statCard(n, label, tone = "", key = "", onClick = null) {
+  return h("div", { class: "stat" + (onClick ? " stat-link" : ""), onClick,
+    ...(onClick ? { role: "button", tabindex: "0", title: `View ${label.toLowerCase()}`,
+      onKeydown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } } : {}) },
     h("div", { class: `n ${tone}`, dataset: key ? { stat: key } : {} }, n),
     h("div", { class: "l" }, label));
 }
+const goto = (hash, tab) => { if (tab) ui.tab = tab; location.hash = hash; };
 
 function countUp(el, to) {
   if (typeof requestAnimationFrame !== "function" || typeof performance === "undefined") { el.textContent = to; return; }
@@ -99,27 +102,52 @@ const activeList = (downloads, ctx) => {
 };
 
 // ── Dashboard ──
+const recentList = (dls) => {
+  const recent = (dls || []).filter((d) => d.status === "completed")
+    .sort((a, b) => (b.finished_at || 0) - (a.finished_at || 0)).slice(0, 6);
+  if (!recent.length) return [h("div", { class: "empty small" }, "No downloads yet.")];
+  return recent.map((d) => h("div", { class: "recent-row" },
+    h("span", { class: "rc-name", title: d.save_path }, base(d.save_path) || d.file_name),
+    h("span", { class: "rc-meta mono" },
+      [d.file_size ? fmtBytes(d.file_size) : null, d.finished_at ? fmtWhen(d.finished_at) : null]
+        .filter(Boolean).join(" · "))));
+};
+
 export function viewDashboard(ctx) {
   const st = (ctx.data.status && ctx.data.status.stats) || {};
   const disk = (ctx.data.status && ctx.data.status.disk) || {};
-  const cards = h("div", { class: "stat-cards" },
-    statCard(st.channels ?? 0, "Channels", "", "channels"),
+  const speed = (ctx.data.status && ctx.data.status.speed) || 0;
+  const strip = h("div", { class: "stat-strip" },
+    statCard(st.channels ?? 0, "Channels", "", "channels", () => goto("#/channels")),
     statCard(st.downloading ?? 0, "Downloading", "accent", "downloading"),
     statCard(st.queued ?? 0, "Queued", "warn", "queued"),
-    statCard(st.completed ?? 0, "Completed", "ok", "completed"),
-    statCard(st.failed ?? 0, "Failed", st.failed ? "err" : "", "failed"),
-    statCard(fmtBytes(st.total_size || 0), "Library", "", "lib"));
-  const speed = (ctx.data.status && ctx.data.status.speed) || 0;
+    statCard(st.completed ?? 0, "Completed", "ok", "completed", () => goto("#/downloads", "completed")),
+    statCard(st.failed ?? 0, "Failed", st.failed ? "err" : "", "failed", () => goto("#/downloads", "failed")),
+    statCard(fmtBytes(st.total_size || 0), "Library", "", "lib", () => goto("#/channels")));
   const root = h("div", { class: "stack" },
-    cards,
+    strip,
+    card("Active now", h("div", { class: "active-list", id: "dash-active" }, ...activeList(ctx.data.downloads, ctx))),
+    h("div", { class: "grid-2" },
+      card("Up next", h("div", { class: "upnext", id: "dash-upnext" }, h("div", { class: "empty small" }, "Loading…"))),
+      card("Recently grabbed", h("div", { class: "recent-list" }, ...recentList(ctx.data.downloads)))),
     h("div", { class: "grid-2" },
       card("Storage",
         h("div", { class: "donut-wrap", html: donutSvg(disk) }),
         h("div", { class: "meter-legend", id: "disk-legend" }, ...diskLegend(disk))),
       card("Download speed",
         h("div", { class: "spark-val", id: "spark-val" }, speed.toFixed(1) + " MB/s"),
-        h("div", { class: "spark-wrap", html: SPARK_SVG }))),
-    card("Active now", h("div", { class: "active-list", id: "dash-active" }, ...activeList(ctx.data.downloads, ctx))));
+        h("div", { class: "spark-wrap", html: SPARK_SVG }))));
+  // Up next: soonest scheduled channel scans (async — fills the idle dashboard).
+  (async () => {
+    const tasks = await api("/api/system/tasks");
+    const el = root.querySelector("#dash-upnext"); if (!el) return;
+    const up = (tasks || []).filter((t) => t.enabled && t.next_run)
+      .sort((a, b) => a.next_run - b.next_run).slice(0, 5);
+    if (!up.length) { mount(el, h("div", { class: "empty small" }, "No channels scheduled.")); return; }
+    mount(el, ...up.map((t) => h("div", { class: "upnext-row" },
+      h("span", { class: "un-name" }, t.name.replace(/^Scan · /, "")),
+      h("span", { class: "un-when mono" }, fmtWhen(t.next_run)))));
+  })();
   setTimeout(() => {
     root.querySelectorAll("[data-stat]").forEach((el) => {
       if (el.dataset.stat === "lib") return;
