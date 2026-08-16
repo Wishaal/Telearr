@@ -167,6 +167,8 @@ body.dense .data-card th, body.dense .data-card td, body.dense .grp-body td { pa
 
 /* active download cards */
 .active-list { display: grid; gap: 12px; }
+.active-list:empty { display: none; }
+.dash-idle { padding: 4px 2px; }
 .active-card { border: 1px solid var(--line-soft); border-radius: var(--radius); padding: 16px 18px; background: var(--surface); box-shadow: var(--shadow); }
 .ac-top { display: flex; align-items: center; gap: 10px; }
 .ac-name { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

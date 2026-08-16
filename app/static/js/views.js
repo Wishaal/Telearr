@@ -82,8 +82,9 @@ function activeCard(d, ctx) {
 const activeList = (downloads, ctx) => {
   const act = downloads.filter((d) => ACTIVE.has(d.status))
     .sort((a, b) => (a.status === b.status ? 0 : a.status === "downloading" ? -1 : 1));
-  return act.length ? act.map((d) => activeCard(d, ctx))
-    : [h("div", { class: "empty small" }, "No active downloads.")];
+  // Empty → render nothing (the caller collapses), so idle pages don't carry a
+  // big "No active downloads." dead band.
+  return act.length ? act.map((d) => activeCard(d, ctx)) : [];
 };
 
 // ── Dashboard ──
@@ -109,11 +110,13 @@ export function viewDashboard(ctx) {
     statCard(st.completed ?? 0, "Completed", "ok", "completed", () => goto("#/downloads", "completed")),
     statCard(st.failed ?? 0, "Failed", st.failed ? "err" : "", "failed", () => goto("#/downloads", "failed")),
     statCard(fmtBytes(st.total_size || 0), "Library", "", "lib", () => goto("#/channels")));
+  const activeItems = activeList(ctx.data.downloads, ctx);
   const activeSection = h("section", { class: "card" },
     h("div", { class: "card-h dash-active-head" },
       h("span", {}, "Active now"),
       h("span", { class: "dash-speed mono", id: "dash-speed" }, speed > 0 ? speed.toFixed(1) + " MB/s" : "")),
-    h("div", { class: "active-list", id: "dash-active" }, ...activeList(ctx.data.downloads, ctx)));
+    h("div", { class: "active-list", id: "dash-active" },
+      ...(activeItems.length ? activeItems : [h("div", { class: "dash-idle muted small" }, "Nothing downloading right now.")])));
   const root = h("div", { class: "stack" },
     strip,
     activeSection,
