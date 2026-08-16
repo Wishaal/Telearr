@@ -13,6 +13,7 @@ DEFAULTS = {
     "notify_webhook": config.NOTIFY_WEBHOOK,
     "default_poll_minutes": 10,
     "history_limit_per_show": 0,   # 0 = keep every completed record
+    "tmdb_key": "",                # optional TMDB api key for poster artwork
     "paused": "0",
 }
 
@@ -63,6 +64,7 @@ def public() -> dict:
         "history_limit_per_show": get_int("history_limit_per_show", 0),
         "plex_url": get("plex_url", DEFAULTS["plex_url"]),
         "plex_token_set": bool(get("plex_token", "")),
+        "tmdb_key_set": bool(get("tmdb_key", "")),
         "notify_webhook": get("notify_webhook", DEFAULTS["notify_webhook"]),
         "paused": get_bool("paused", False),
     }
@@ -79,6 +81,7 @@ WRITABLE = {
     "plex_url": lambda v: str(v).rstrip("/"),
     "plex_token": lambda v: str(v),
     "notify_webhook": lambda v: str(v),
+    "tmdb_key": lambda v: str(v).strip(),
 }
 
 

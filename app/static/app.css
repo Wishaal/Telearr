@@ -277,3 +277,28 @@ body { background-image:
 .btn.primary:hover { filter: brightness(1.06); }
 
 @media (max-width: 860px) { .cmdk-btn kbd { display: none; } .cmdk { padding-top: 8vh; } }
+
+/* ============ v2.2: poster library, empty states, sparkline ============ */
+.ch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+.ch-card { background: var(--surface-solid); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+.ch-card:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.poster { position: relative; aspect-ratio: 2/3; background: linear-gradient(150deg, var(--surface-2), var(--line)); display: grid; place-items: center; overflow: hidden; }
+.poster-fallback { color: color-mix(in srgb, var(--muted) 60%, transparent); transform: scale(2.2); }
+.poster-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .4s ease; }
+.poster-img.loaded { opacity: 1; }
+.ch-toggle { position: absolute; top: 8px; right: 8px; z-index: 2; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+.ch-body { padding: 11px 12px 12px; }
+.ch-title { font-weight: 650; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ch-meta { color: var(--muted); font-size: 11.5px; margin: 3px 0 10px; text-transform: capitalize; }
+.ch-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+.ch-actions .btn { padding: 5px 8px; font-size: 11.5px; }
+
+.empty-state { display: grid; place-items: center; gap: 10px; padding: 64px 16px; text-align: center; }
+.empty-ico { color: var(--muted); transform: scale(2.4); margin-bottom: 8px; opacity: .7; }
+.empty-title { font-size: 16px; font-weight: 650; }
+
+.spark-val { font-size: 30px; font-weight: 750; letter-spacing: -.03em; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.spark-wrap { margin-top: 8px; }
+.spark { width: 100%; height: 56px; display: block; }
+
+@media (max-width: 860px) { .ch-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; } }

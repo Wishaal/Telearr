@@ -12,7 +12,7 @@ from fastapi.responses import (RedirectResponse, HTMLResponse, JSONResponse,
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import db, auth, scanner, settings, plex, notify, arr
+from . import db, auth, scanner, settings, plex, notify, arr, tmdb
 from .tg import get_client
 from .namer import imdb_search
 from .config import summary
@@ -422,6 +422,16 @@ async def api_plex_test(user=Depends(auth.require_user)):
 @app.post("/api/integrations/notify/test")
 async def api_notify_test(user=Depends(auth.require_user)):
     return await notify.test()
+
+
+@app.get("/api/art")
+async def api_art(imdb: str = "", user=Depends(auth.require_user)):
+    return await tmdb.art(imdb)
+
+
+@app.post("/api/integrations/tmdb/test")
+async def api_tmdb_test(user=Depends(auth.require_user)):
+    return await tmdb.test()
 
 
 # ── *arr integration: Newznab indexer ─────────────────────────────────

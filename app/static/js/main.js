@@ -128,7 +128,7 @@ function connectSSE() {
   _es.onmessage = (e) => {
     let d; try { d = JSON.parse(e.data); } catch { return; }
     _lastSSE = Date.now();
-    DATA.status = { ...(DATA.status || {}), stats: d.stats, paused: d.paused, disk: d.disk };
+    DATA.status = { ...(DATA.status || {}), stats: d.stats, paused: d.paused, disk: d.disk, speed: d.speed };
     const others = DATA.downloads.filter((x) => !["downloading", "queued"].includes(x.status));
     DATA.downloads = [...d.active, ...others];
     updateShell();

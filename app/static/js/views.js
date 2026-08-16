@@ -20,6 +20,14 @@ const card = (title, ...body) => h("section", { class: "card" },
 
 const statusPill = (s) => h("span", { class: `pill s-${s}` }, s);
 
+function emptyState(ic, title, sub, btnLabel, onClick) {
+  return h("div", { class: "empty-state" },
+    h("div", { class: "empty-ico", html: icon(ic) }),
+    h("div", { class: "empty-title" }, title),
+    sub ? h("div", { class: "muted small" }, sub) : null,
+    btnLabel ? h("button", { class: "btn primary", onClick }, btnLabel) : null);
+}
+
 function statCard(n, label, tone = "", key = "") {
   return h("div", { class: "stat" },
     h("div", { class: `n ${tone}`, dataset: key ? { stat: key } : {} }, n),
@@ -50,6 +58,21 @@ function donutSvg(disk) {
 }
 
 const diskLegend = (disk) => [h("span", {}, `${fmtBytes(disk.used || 0)} used`), h("span", {}, `${fmtBytes(disk.free || 0)} free`)];
+
+const SPEED_HIST = [];
+const SPARK_SVG = '<svg viewBox="0 0 260 52" class="spark" preserveAspectRatio="none">'
+  + '<defs><linearGradient id="sgrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5b93ff"/><stop offset="1" stop-color="#35c46b"/></linearGradient>'
+  + '<linearGradient id="sfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b93ff" stop-opacity=".25"/><stop offset="1" stop-color="#5b93ff" stop-opacity="0"/></linearGradient></defs>'
+  + '<polygon id="spark-area" fill="url(#sfill)" points=""/>'
+  + '<polyline id="spark-line" fill="none" stroke="url(#sgrad)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points=""/></svg>';
+function drawSpark() {
+  const line = document.querySelector("#spark-line"), area = document.querySelector("#spark-area");
+  if (!line || SPEED_HIST.length < 2) return;
+  const w = 260, hgt = 52, max = Math.max(0.5, ...SPEED_HIST), step = w / (SPEED_HIST.length - 1);
+  const pts = SPEED_HIST.map((v, i) => `${(i * step).toFixed(1)},${(hgt - (v / max) * (hgt - 6) - 3).toFixed(1)}`);
+  line.setAttribute("points", pts.join(" "));
+  if (area) area.setAttribute("points", `0,${hgt} ${pts.join(" ")} ${w},${hgt}`);
+}
 
 function activeCard(d, ctx) {
   const pct = Math.round((d.progress || 0) * 100), eta = fmtETA(d);
@@ -83,17 +106,24 @@ export function viewDashboard(ctx) {
     statCard(st.completed ?? 0, "Completed", "ok", "completed"),
     statCard(st.failed ?? 0, "Failed", st.failed ? "err" : "", "failed"),
     statCard(fmtBytes(st.total_size || 0), "Library", "", "lib"));
+  const speed = (ctx.data.status && ctx.data.status.speed) || 0;
   const root = h("div", { class: "stack" },
     cards,
     h("div", { class: "grid-2" },
       card("Storage",
         h("div", { class: "donut-wrap", html: donutSvg(disk) }),
         h("div", { class: "meter-legend", id: "disk-legend" }, ...diskLegend(disk))),
-      card("Active now", h("div", { class: "active-list", id: "dash-active" }, ...activeList(ctx.data.downloads, ctx)))));
-  setTimeout(() => root.querySelectorAll("[data-stat]").forEach((el) => {
-    if (el.dataset.stat === "lib") return;
-    const v = parseInt(el.textContent); if (!isNaN(v)) { el.textContent = "0"; countUp(el, v); }
-  }), 0);
+      card("Download speed",
+        h("div", { class: "spark-val", id: "spark-val" }, speed.toFixed(1) + " MB/s"),
+        h("div", { class: "spark-wrap", html: SPARK_SVG }))),
+    card("Active now", h("div", { class: "active-list", id: "dash-active" }, ...activeList(ctx.data.downloads, ctx))));
+  setTimeout(() => {
+    root.querySelectorAll("[data-stat]").forEach((el) => {
+      if (el.dataset.stat === "lib") return;
+      const v = parseInt(el.textContent); if (!isNaN(v)) { el.textContent = "0"; countUp(el, v); }
+    });
+    drawSpark();
+  }, 0);
   return root;
 }
 
@@ -113,35 +143,45 @@ export function liveDashboard(ctx) {
     const leg = document.querySelector("#disk-legend"); if (leg) mount(leg, ...diskLegend(disk));
   }
   const da = document.querySelector("#dash-active"); if (da) mount(da, ...activeList(ctx.data.downloads, ctx));
+  const speed = (ctx.data.status && ctx.data.status.speed) || 0;
+  SPEED_HIST.push(speed); if (SPEED_HIST.length > 40) SPEED_HIST.shift();
+  const sv = document.querySelector("#spark-val"); if (sv) sv.textContent = speed.toFixed(1) + " MB/s";
+  drawSpark();
 }
 
-// ── Channels ──
-function channelRow(c, ctx) {
+// ── Channels (poster library) ──
+const _artCache = new Map();
+function loadArt(imdb, img, poster) {
+  if (!imdb) return;
+  const apply = (a) => { if (a && a.poster) { img.src = a.poster; img.classList.add("loaded"); } if (a && a.backdrop) poster.dataset.backdrop = a.backdrop; };
+  if (_artCache.has(imdb)) return apply(_artCache.get(imdb));
+  api(`/api/art?imdb=${encodeURIComponent(imdb)}`).then((a) => { _artCache.set(imdb, a || {}); apply(a || {}); });
+}
+
+function channelCard(c, ctx) {
   const days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
-  const toggle = h("button", {
-    class: `toggle ${c.enabled ? "on" : ""}`, title: c.enabled ? "Enabled" : "Disabled",
-    onClick: async () => { await jpatch(`/api/channels/${c.id}`, { enabled: c.enabled ? 0 : 1 }); ctx.refresh(); },
-  });
-  const acts = h("td", { class: "actions" },
-    h("button", { class: "btn ghost sm", onClick: async () => { await api(`/api/channels/${c.id}/scan`, { method: "POST" }); toast("Scan started", "ok"); } }, h("span", { html: icon("scan") }), "Scan"),
-    h("button", { class: "btn ghost sm", onClick: async () => { await api(`/api/channels/${c.id}/backfill`, { method: "POST" }); toast("Backfill started", "ok"); } }, "Backfill"),
-    h("button", { class: "btn ghost sm icon", title: "Edit", "aria-label": "Edit channel", onClick: () => openChannelModal(ctx, c) }, h("span", { html: icon("edit") })),
-    h("button", { class: "btn ghost sm icon", title: "Remove", "aria-label": "Remove channel", onClick: async () => { if (confirm("Remove this channel? Download history is kept.")) { await api(`/api/channels/${c.id}`, { method: "DELETE" }); toast("Channel removed", "ok"); ctx.refresh(); } } }, h("span", { html: icon("trash") })));
-  return h("tr", {},
-    h("td", {}, h("b", {}, c.imdb_title || c.title), h("div", { class: "muted small" }, `${c.imdb_id || "unmapped"} · ${c.chat_id}`)),
-    h("td", {}, c.kind),
-    h("td", {}, (c.weekdays || "").split(",").filter((x) => x !== "").map((i) => days[i]).join(" ")),
-    h("td", {}, `${c.poll_minutes}m`),
-    h("td", {}, toggle),
-    acts);
+  const dstr = (c.weekdays || "").split(",").filter((x) => x !== "").map((i) => days[i]).join(" ");
+  const img = h("img", { class: "poster-img", alt: "", loading: "lazy" });
+  const poster = h("div", { class: "poster" },
+    h("span", { class: "poster-fallback", html: icon("film") }), img,
+    h("button", { class: `toggle ch-toggle ${c.enabled ? "on" : ""}`, title: c.enabled ? "Enabled" : "Disabled", "aria-label": "Toggle channel",
+      onClick: async (e) => { e.stopPropagation(); await jpatch(`/api/channels/${c.id}`, { enabled: c.enabled ? 0 : 1 }); ctx.refresh(); } }));
+  loadArt(c.imdb_id, img, poster);
+  return h("div", { class: "ch-card" }, poster,
+    h("div", { class: "ch-body" },
+      h("div", { class: "ch-title", title: c.imdb_title || c.title }, c.imdb_title || c.title),
+      h("div", { class: "ch-meta" }, `${c.kind} · ${dstr || "—"} · ${c.poll_minutes}m`),
+      h("div", { class: "ch-actions" },
+        h("button", { class: "btn ghost sm", onClick: async () => { await api(`/api/channels/${c.id}/scan`, { method: "POST" }); toast("Scan started", "ok"); } }, h("span", { html: icon("scan") }), "Scan"),
+        h("button", { class: "btn ghost sm", onClick: async () => { await api(`/api/channels/${c.id}/backfill`, { method: "POST" }); toast("Backfill started", "ok"); } }, "Backfill"),
+        h("button", { class: "btn ghost sm icon", title: "Edit", "aria-label": "Edit channel", onClick: () => openChannelModal(ctx, c) }, h("span", { html: icon("edit") })),
+        h("button", { class: "btn ghost sm icon", title: "Remove", "aria-label": "Remove channel", onClick: async () => { if (confirm("Remove this channel? Download history is kept.")) { await api(`/api/channels/${c.id}`, { method: "DELETE" }); toast("Channel removed", "ok"); ctx.refresh(); } } }, h("span", { html: icon("trash") })))));
 }
 
 export function viewChannels(ctx) {
   const rows = ctx.data.channels || [];
-  if (!rows.length) return h("div", { class: "empty" }, "No channels yet — use “Add channel”.");
-  const head = h("thead", {}, h("tr", {}, ...["Show", "Kind", "Days", "Poll", "Enabled", ""].map((t) => h("th", {}, t))));
-  const body = h("tbody", {}, ...rows.map((c) => channelRow(c, ctx)));
-  return h("div", { class: "data-card" }, h("table", {}, head, body));
+  if (!rows.length) return emptyState("channels", "No channels yet", "Add a Telegram channel to start grabbing episodes.", "Add channel", () => openChannelModal(ctx, null));
+  return h("div", { class: "ch-grid" }, ...rows.map((c) => channelCard(c, ctx)));
 }
 
 // ── Downloads ──
@@ -311,6 +351,14 @@ export function viewSettings(ctx) {
         h("button", { class: "btn primary sm", onClick: async () => { await jpatch("/api/settings", { notify_webhook: root.querySelector("#set-notify_webhook").value }); toast("Webhook saved", "ok"); } }, "Save"),
         h("button", { class: "btn ghost sm", onClick: async () => { const r = await api("/api/integrations/notify/test", { method: "POST" }); if (r) { notifyOut.textContent = r.detail; notifyOut.style.color = `var(--${r.ok ? "ok" : "err"})`; } } }, "Test"), notifyOut));
 
+    const tmdbOut = h("span", { class: "test-out" });
+    const tmdbc = card("Artwork (TMDB)",
+      h("div", { class: "muted small", style: "margin-bottom:10px" }, "Add a free TMDB API key to show poster artwork on the Channels page. Get one at themoviedb.org → Settings → API."),
+      row("API key" + (s.tmdb_key_set ? " (saved)" : ""), inp("set-tmdb_key", "", "password")),
+      h("div", { class: "set-actions" },
+        h("button", { class: "btn primary sm", onClick: async () => { const tk = root.querySelector("#set-tmdb_key").value; if (tk) await jpatch("/api/settings", { tmdb_key: tk }); toast("TMDB key saved", "ok"); } }, "Save"),
+        h("button", { class: "btn ghost sm", onClick: async () => { const r = await api("/api/integrations/tmdb/test", { method: "POST" }); if (r) { tmdbOut.textContent = r.detail; tmdbOut.style.color = `var(--${r.ok ? "ok" : "err"})`; } } }, "Test"), tmdbOut));
+
     const keyInp = inp("arr-key", arrKey); keyInp.readOnly = true;
     const nzInp = inp("arr-nzb", `${location.origin}/api/newznab`); nzInp.readOnly = true;
     const arr = card("Sonarr / Radarr / Prowlarr",
@@ -326,7 +374,7 @@ export function viewSettings(ctx) {
     const paths = card("Library paths",
       h("div", { class: "muted small" }, h("div", {}, `TV → ${p.tv_dir}`), h("div", {}, `TV 4K → ${p.tv_dir_4k}`), h("div", {}, `Movies → ${p.movies_dir}`), h("div", {}, `Other → ${p.other_dir}`), h("div", { style: "margin-top:6px" }, "Edit via .env and rebuild.")));
 
-    root.replaceChildren(account, appearance, perf, plex, notify, arr, paths);
+    root.replaceChildren(account, appearance, perf, plex, notify, tmdbc, arr, paths);
   })();
   return root;
 }
