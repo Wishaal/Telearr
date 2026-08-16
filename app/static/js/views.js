@@ -482,7 +482,7 @@ async function sysUpdates(root) {
 
 // ── Settings ──
 export function viewSettings(ctx) {
-  const root = h("div", { class: "settings-grid" }, h("div", { class: "empty" }, "Loading…"));
+  const root = h("div", { class: "stack settings-wrap" }, h("div", { class: "empty" }, "Loading…"));
   (async () => {
     const data = await api("/api/settings"); if (!data) return;
     const s = data.settings, p = data.paths, arrKey = (data.arr || {}).apikey || "";
@@ -573,7 +573,23 @@ export function viewSettings(ctx) {
       h("div", { class: "set-actions" }, tgAuth.authorized
         ? h("button", { class: "btn ghost sm", onClick: async () => { if (confirm("Disconnect Telegram? Downloads stop until you reconnect.")) { await api("/api/telegram/auth/logout", { method: "POST" }); toast("Telegram disconnected", "ok"); ctx.rerender(); } } }, "Disconnect")
         : h("button", { class: "btn primary sm", onClick: () => openTelegramConnect(ctx) }, h("span", { html: icon("telegram") }), "Connect Telegram")));
-    root.replaceChildren(tgCard, account, appearance, perf, plex, notify, tmdbc, arr, paths);
+    // Grouped into tabs (was one long column). Cards are built once; switching
+    // tabs just re-parents them, so unsaved input and handlers survive.
+    const TABS = [
+      ["account", "Account", [account, appearance]],
+      ["downloads", "Downloads", [perf, paths]],
+      ["integrations", "Integrations", [tgCard, plex, tmdbc, notify, arr]],
+    ];
+    const tabsRow = h("div", { class: "tabs" });
+    const body = h("div", { class: "settings-cols" });
+    const renderTab = () => {
+      const cur = TABS.some((t) => t[0] === ui.setTab) ? ui.setTab : "account";
+      mount(tabsRow, ...TABS.map(([k, label]) =>
+        h("button", { class: "tab " + (cur === k ? "on" : ""), onClick: () => { ui.setTab = k; renderTab(); } }, label)));
+      mount(body, ...TABS.find((t) => t[0] === cur)[2]);
+    };
+    renderTab();
+    root.replaceChildren(tabsRow, body);
   })();
   return root;
 }
