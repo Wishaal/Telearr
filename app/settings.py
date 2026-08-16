@@ -11,6 +11,7 @@ DEFAULTS = {
     "plex_url": config.PLEX_URL,
     "plex_token": config.PLEX_TOKEN,
     "notify_webhook": config.NOTIFY_WEBHOOK,
+    "notify_telegram": "0",        # DM completed downloads to the account's Saved Messages
     "default_poll_minutes": 10,
     "history_limit_per_show": 0,   # 0 = keep every completed record
     "tmdb_key": "",                # optional TMDB api key for poster artwork
@@ -66,6 +67,7 @@ def public() -> dict:
         "plex_token_set": bool(get("plex_token", "")),
         "tmdb_key_set": bool(get("tmdb_key", "")),
         "notify_webhook": get("notify_webhook", DEFAULTS["notify_webhook"]),
+        "notify_telegram": get_bool("notify_telegram", False),
         "paused": get_bool("paused", False),
     }
 
@@ -81,6 +83,7 @@ WRITABLE = {
     "plex_url": lambda v: str(v).rstrip("/"),
     "plex_token": lambda v: str(v),
     "notify_webhook": lambda v: str(v),
+    "notify_telegram": lambda v: "1" if str(v).strip().lower() in ("1", "true", "yes", "on") else "0",
     "tmdb_key": lambda v: str(v).strip(),
 }
 

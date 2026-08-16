@@ -350,3 +350,7 @@ body { background-image:
 .ep-row:last-child { border-bottom: 0; }
 .ep-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 620px) { .drawer-head { flex-direction: column; align-items: flex-start; margin-top: -60px; } .drawer-info { padding-top: 6px; } .drawer-poster { width: 108px; flex-basis: 108px; } .hero { height: 200px; } }
+
+/* checkbox in settings rows */
+.chkwrap { display: flex; align-items: center; height: 100%; }
+.chkwrap input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; }

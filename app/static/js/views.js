@@ -390,11 +390,15 @@ export function viewSettings(ctx) {
         h("button", { class: "btn ghost sm", onClick: async () => { const r = await api("/api/integrations/plex/test", { method: "POST" }); if (r) { plexOut.textContent = r.detail; plexOut.style.color = `var(--${r.ok ? "ok" : "err"})`; } } }, "Test"), plexOut));
 
     const notifyOut = h("span", { class: "test-out" });
+    const tgChk = h("input", { type: "checkbox", id: "set-notify_telegram",
+      onChange: async (e) => { await jpatch("/api/settings", { notify_telegram: e.target.checked }); toast(e.target.checked ? "Telegram DMs on" : "Telegram DMs off", "ok"); } });
+    if (s.notify_telegram) tgChk.checked = true;
     const notify = card("Notifications",
-      row("Webhook URL", inp("set-notify_webhook", s.notify_webhook), "Discord / Slack / generic JSON"),
+      row(h("span", {}, "Telegram Saved Messages"), h("div", { class: "chkwrap" }, tgChk), "DM each completed download to your own Telegram account"),
+      row("Webhook URL", inp("set-notify_webhook", s.notify_webhook), "Discord / Slack / generic JSON (optional)"),
       h("div", { class: "set-actions" },
-        h("button", { class: "btn primary sm", onClick: async () => { await jpatch("/api/settings", { notify_webhook: root.querySelector("#set-notify_webhook").value }); toast("Webhook saved", "ok"); } }, "Save"),
-        h("button", { class: "btn ghost sm", onClick: async () => { const r = await api("/api/integrations/notify/test", { method: "POST" }); if (r) { notifyOut.textContent = r.detail; notifyOut.style.color = `var(--${r.ok ? "ok" : "err"})`; } } }, "Test"), notifyOut));
+        h("button", { class: "btn primary sm", onClick: async () => { await jpatch("/api/settings", { notify_webhook: root.querySelector("#set-notify_webhook").value }); toast("Webhook saved", "ok"); } }, "Save webhook"),
+        h("button", { class: "btn ghost sm", onClick: async () => { notifyOut.textContent = "Sending…"; notifyOut.style.color = "var(--muted)"; const r = await api("/api/integrations/notify/test", { method: "POST" }); if (r) { notifyOut.textContent = r.detail; notifyOut.style.color = `var(--${r.ok ? "ok" : "err"})`; } } }, "Send test"), notifyOut));
 
     const tmdbOut = h("span", { class: "test-out" });
     const tmdbc = card("Artwork (TMDB)",
