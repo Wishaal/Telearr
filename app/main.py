@@ -449,6 +449,43 @@ async def api_telegram_resolve(payload: dict, user=Depends(auth.require_user)):
     return await tg.resolve(payload.get("query", ""))
 
 
+# ── interactive Telegram sign-in (web wizard) ─────────────────────────
+@app.get("/api/telegram/auth")
+async def api_tg_auth(user=Depends(auth.require_user)):
+    return await tg.auth_status()
+
+
+@app.post("/api/telegram/auth/api")
+async def api_tg_set_api(payload: dict, user=Depends(auth.require_user)):
+    return tg.set_api(payload.get("api_id"), payload.get("api_hash"))
+
+
+@app.post("/api/telegram/auth/send_code")
+async def api_tg_send_code(payload: dict, user=Depends(auth.require_user)):
+    return await tg.send_code(payload.get("phone", ""))
+
+
+@app.post("/api/telegram/auth/sign_in")
+async def api_tg_sign_in(payload: dict, user=Depends(auth.require_user)):
+    r = await tg.sign_in_code(payload.get("code", ""))
+    if r.get("ok"):
+        scanner.start_background()
+    return r
+
+
+@app.post("/api/telegram/auth/password")
+async def api_tg_password(payload: dict, user=Depends(auth.require_user)):
+    r = await tg.sign_in_password(payload.get("password", ""))
+    if r.get("ok"):
+        scanner.start_background()
+    return r
+
+
+@app.post("/api/telegram/auth/logout")
+async def api_tg_logout(user=Depends(auth.require_user)):
+    return await tg.logout()
+
+
 # ── *arr integration: Newznab indexer ─────────────────────────────────
 def _base_url(request: Request) -> str:
     return str(request.base_url).rstrip("/")

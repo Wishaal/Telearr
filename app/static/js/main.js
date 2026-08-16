@@ -1,7 +1,7 @@
 // main.js — app bootstrap: shell, router, polling, theme.
 import { h, mount, qs, api } from "./core.js";
 import { icon } from "./icons.js";
-import { viewDashboard, viewChannels, viewDownloads, viewActivity, viewSettings, openChannelModal, liveActive, liveDashboard, ui } from "./views.js";
+import { viewDashboard, viewChannels, viewDownloads, viewActivity, viewSettings, openChannelModal, openTelegramConnect, liveActive, liveDashboard, ui } from "./views.js";
 import { initPalette, openCommandPalette } from "./palette.js";
 
 const NAV = [
@@ -61,9 +61,12 @@ function buildShell() {
       h("button", { id: "theme-toggle", class: "btn ghost icon", title: "Theme", "aria-label": "Toggle theme (auto/light/dark)", onClick: cycleTheme }, h("span", { html: icon("sun") })),
       h("div", { id: "ctx-actions" })));
   const bottomNav = h("nav", { class: "bottom-nav" }, ...NAV.map((n) => navBtn(n, "bnav-item")));
+  const banner = h("div", { id: "tg-banner", class: "tg-banner", hidden: true },
+    h("span", {}, h("span", { class: "tgb-ic", html: icon("alert") }), " Telegram isn’t connected — Telearr can’t download until you sign in."),
+    h("button", { class: "btn primary sm", onClick: () => openTelegramConnect(ctx) }, "Connect Telegram"));
   mount(qs("#app"),
     sidebar,
-    h("main", { class: "main" }, topbar, h("div", { class: "view", id: "view-root" })),
+    h("main", { class: "main" }, topbar, banner, h("div", { class: "view", id: "view-root" })),
     bottomNav);
 }
 
@@ -83,6 +86,7 @@ function updateShell() {
   const dot = qs("#tg-dot"); if (dot) { dot.className = "dot " + (s.authorized ? "ok" : "bad"); dot.title = s.authorized ? "Telegram connected" : "Telegram offline"; }
   const tg = qs("#tg-status"); if (tg) mount(tg, h("span", { class: "dot " + (s.authorized ? "ok" : "bad") }), s.authorized ? "Telegram connected" : "Telegram offline");
   const pt = qs("#pause-toggle"); if (pt) mount(pt, h("span", { html: icon(s.paused ? "play" : "pause") }), s.paused ? "Resume downloads" : "Pause downloads");
+  const banner = qs("#tg-banner"); if (banner) banner.hidden = s.authorized !== false;
 }
 
 async function togglePause() {

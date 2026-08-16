@@ -3,29 +3,117 @@ import re
 import time
 import logging
 from telethon import TelegramClient, utils
+from telethon.errors import SessionPasswordNeededError
 from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest, CheckChatInviteRequest
+from . import settings
 from .config import API_ID, API_HASH, SESSION_PATH
 
 log = logging.getLogger("tg")
 _client: TelegramClient | None = None
 _dialogs_cache = {"ts": 0, "data": []}
+_login = {}   # transient state during the interactive sign-in flow
+
+
+def _api_creds():
+    # user-provided creds (via the setup wizard) take precedence over .env defaults
+    return (settings.get_int("tg_api_id", 0) or API_ID,
+            settings.get("tg_api_hash", "") or API_HASH)
 
 
 def get_client() -> TelegramClient:
     global _client
     if _client is None:
-        # connection_retries/​retry_delay make the long-lived scanner resilient
-        # to transient MTProto drops; flood_sleep_threshold lets Telethon auto-wait
-        # short flood waits instead of raising.
+        aid, ahash = _api_creds()
         _client = TelegramClient(
-            SESSION_PATH, API_ID, API_HASH,
+            SESSION_PATH, aid, ahash,
             connection_retries=5,
             retry_delay=2,
             auto_reconnect=True,
             flood_sleep_threshold=60,
         )
     return _client
+
+
+def reset_client():
+    global _client
+    _client = None
+
+
+# ── interactive sign-in (web wizard) ──────────────────────────────────
+async def auth_status():
+    aid, ahash = _api_creds()
+    api_ready = bool(aid and ahash)
+    authed = False
+    if api_ready:
+        try:
+            c = get_client()
+            if not c.is_connected():
+                await c.connect()
+            authed = await c.is_user_authorized()
+        except Exception:
+            authed = False
+    return {"authorized": authed, "api_ready": api_ready}
+
+
+def set_api(api_id, api_hash):
+    try:
+        settings.set("tg_api_id", str(int(str(api_id).strip())))
+    except (TypeError, ValueError):
+        return {"error": "API ID must be a number"}
+    settings.set("tg_api_hash", str(api_hash).strip())
+    reset_client()
+    return {"ok": True}
+
+
+async def send_code(phone):
+    if not phone:
+        return {"error": "Enter your phone number (with country code)"}
+    try:
+        c = get_client()
+        if not c.is_connected():
+            await c.connect()
+        res = await c.send_code_request(phone.strip())
+        _login.update(phone=phone.strip(), hash=res.phone_code_hash)
+        return {"ok": True}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+async def sign_in_code(code):
+    if not _login.get("phone"):
+        return {"error": "Request a code first"}
+    try:
+        c = get_client()
+        await c.sign_in(phone=_login["phone"], code=str(code).strip(), phone_code_hash=_login["hash"])
+        _login.clear()
+        return {"ok": True}
+    except SessionPasswordNeededError:
+        return {"need_password": True}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+async def sign_in_password(password):
+    try:
+        c = get_client()
+        await c.sign_in(password=password)
+        _login.clear()
+        return {"ok": True}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+async def logout():
+    try:
+        c = get_client()
+        if not c.is_connected():
+            await c.connect()
+        await c.log_out()
+        reset_client()
+        return {"ok": True}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 async def _ready():

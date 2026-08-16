@@ -423,12 +423,81 @@ export function viewSettings(ctx) {
     const paths = card("Library paths",
       h("div", { class: "muted small" }, h("div", {}, `TV → ${p.tv_dir}`), h("div", {}, `TV 4K → ${p.tv_dir_4k}`), h("div", {}, `Movies → ${p.movies_dir}`), h("div", {}, `Other → ${p.other_dir}`), h("div", { style: "margin-top:6px" }, "Edit via .env and rebuild.")));
 
-    root.replaceChildren(account, appearance, perf, plex, notify, tmdbc, arr, paths);
+    const tgAuth = (await api("/api/telegram/auth")) || {};
+    const tgCard = card("Telegram account",
+      h("div", { class: "muted small", style: "margin-bottom:10px" }, tgAuth.authorized
+        ? "Connected — Telearr is signed in to your Telegram account."
+        : "Not connected. Connect your account so Telearr can read your channels."),
+      h("div", { class: "set-actions" }, tgAuth.authorized
+        ? h("button", { class: "btn ghost sm", onClick: async () => { if (confirm("Disconnect Telegram? Downloads stop until you reconnect.")) { await api("/api/telegram/auth/logout", { method: "POST" }); toast("Telegram disconnected", "ok"); ctx.rerender(); } } }, "Disconnect")
+        : h("button", { class: "btn primary sm", onClick: () => openTelegramConnect(ctx) }, h("span", { html: icon("telegram") }), "Connect Telegram")));
+    root.replaceChildren(tgCard, account, appearance, perf, plex, notify, tmdbc, arr, paths);
   })();
   return root;
 }
 
 // ── Channel modal (add / edit) with IMDb picker ──
+// ── Telegram connect wizard ──
+export function openTelegramConnect(ctx) {
+  const host = document.querySelector("#modal-root");
+  const body = h("div", { class: "tg-wiz" });
+  const err = h("div", { class: "tg-err" });
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+  const close = () => { document.removeEventListener("keydown", onKey); host.replaceChildren(); ctx.refresh(); };
+  document.addEventListener("keydown", onKey);
+  const say = (m, kind) => { err.textContent = m || ""; err.style.color = kind === "err" ? "var(--err)" : "var(--muted)"; };
+  const field = (label, attrs) => { const i = h("input", attrs); return { el: h("label", {}, label, i), input: i }; };
+
+  const step = (name) => {
+    say("");
+    if (name === "api") {
+      const a = field("API ID", { placeholder: "e.g. 123456", inputmode: "numeric" });
+      const b = field("API Hash", { placeholder: "e.g. a1b2c3…" });
+      mount(body,
+        h("p", { class: "muted small" }, "Create a Telegram app at ", h("a", { href: "https://my.telegram.org", target: "_blank", rel: "noopener" }, "my.telegram.org"), " → API development tools, then paste the two values below."),
+        a.el, b.el,
+        h("button", { class: "btn primary block", onClick: async () => { say("Saving…"); const r = await jpost("/api/telegram/auth/api", { api_id: a.input.value, api_hash: b.input.value }); r && r.ok ? step("phone") : say((r && r.error) || "Failed", "err"); } }, "Continue"));
+      a.input.focus();
+    } else if (name === "phone") {
+      const p = field("Phone number", { placeholder: "+15551234567", inputmode: "tel" });
+      mount(body,
+        h("p", { class: "muted small" }, "Enter your Telegram phone number with country code. Telegram will send you a login code."),
+        p.el,
+        h("button", { class: "btn primary block", onClick: async () => { say("Sending code…"); const r = await jpost("/api/telegram/auth/send_code", { phone: p.input.value }); r && r.ok ? step("code") : say((r && r.error) || "Could not send code", "err"); } }, "Send code"));
+      p.input.focus();
+    } else if (name === "code") {
+      const c = field("Login code", { placeholder: "12345", inputmode: "numeric", autocomplete: "one-time-code" });
+      mount(body,
+        h("p", { class: "muted small" }, "Enter the code Telegram just sent (check the Telegram app on your phone)."),
+        c.el,
+        h("button", { class: "btn primary block", onClick: async () => { say("Verifying…"); const r = await jpost("/api/telegram/auth/sign_in", { code: c.input.value }); r && r.ok ? step("done") : r && r.need_password ? step("password") : say((r && r.error) || "Invalid code", "err"); } }, "Verify"),
+        h("button", { class: "btn ghost sm block", onClick: () => step("phone") }, "← Use a different number"));
+      c.input.focus();
+    } else if (name === "password") {
+      const w = field("Two-step password", { type: "password", placeholder: "Your Telegram 2FA password" });
+      mount(body,
+        h("p", { class: "muted small" }, "Your account has two-step verification enabled. Enter your Telegram password."),
+        w.el,
+        h("button", { class: "btn primary block", onClick: async () => { say("Signing in…"); const r = await jpost("/api/telegram/auth/password", { password: w.input.value }); r && r.ok ? step("done") : say((r && r.error) || "Wrong password", "err"); } }, "Sign in"));
+      w.input.focus();
+    } else {
+      mount(body, h("div", { class: "tg-done" },
+        h("span", { class: "tg-check", html: icon("check") }),
+        h("h3", {}, "Telegram connected"),
+        h("p", { class: "muted small" }, "Telearr is signed in and can now watch your channels."),
+        h("button", { class: "btn primary block", onClick: close }, "Done")));
+    }
+  };
+
+  const overlay = h("div", { class: "modal", onClick: (e) => { if (e.target === overlay) close(); } },
+    h("div", { class: "modal-card" },
+      h("div", { class: "modal-head" }, h("h3", {}, "Connect Telegram"),
+        h("button", { class: "btn ghost icon", "aria-label": "Close", onClick: close }, h("span", { html: icon("x") }))),
+      body, err));
+  host.replaceChildren(overlay);
+  api("/api/telegram/auth").then((a) => step(a && a.api_ready ? "phone" : "api"));
+}
+
 export function openChannelModal(ctx, channel) {
   const host = document.querySelector("#modal-root");
   let pick = null, imdbTimer = null;
