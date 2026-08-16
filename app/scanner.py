@@ -240,8 +240,11 @@ async def _run_download(client, channel_id, msg, save_path, gk):
             name = os.path.basename(save_path)
             db.log("INFO", f"✅ Downloaded {name}", channel_id=channel_id)
             _prune_history(channel_id)
+            with db.conn() as c:
+                ch = c.execute("SELECT imdb_id, imdb_title, title FROM channels WHERE id=?", (channel_id,)).fetchone()
+            show = (ch["imdb_title"] or ch["title"]) if ch else ""
             _spawn(plex.refresh_path(os.path.dirname(save_path)))
-            _spawn(notify.send("Downloaded", name))
+            _spawn(notify.send("Downloaded", name, imdb_id=(ch["imdb_id"] if ch else None), show=show))
     except asyncio.CancelledError:
         if _shutting_down:
             # process is stopping — leave it queued so it resumes on next boot

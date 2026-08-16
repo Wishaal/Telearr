@@ -19,7 +19,7 @@ async def _webhook(text):
         return False
 
 
-async def _telegram(text):
+async def _telegram(text, poster=""):
     if not settings.get_bool("notify_telegram", False):
         return None
     try:
@@ -27,6 +27,18 @@ async def _telegram(text):
         c = tg.get_client()
         if not c.is_connected():
             await c.connect()
+        if poster:                              # send the poster as a photo with the text as caption
+            try:
+                import io
+                async with httpx.AsyncClient() as hc:
+                    resp = await hc.get(poster, timeout=15)
+                if resp.status_code < 400 and resp.content:
+                    bio = io.BytesIO(resp.content)
+                    bio.name = "poster.jpg"
+                    await c.send_file("me", bio, caption=text)
+                    return True
+            except Exception as e:
+                log.warning("telegram poster send failed (%s); falling back to text", e)
         await c.send_message("me", text)        # "me" = the account's Saved Messages
         return True
     except Exception as e:
@@ -34,19 +46,54 @@ async def _telegram(text):
         return False
 
 
-async def send(title, detail=""):
-    text = f"📥 {title}" + (f"\n{detail}" if detail else "")
+def _plex_link(show):
+    if not show:
+        return ""
+    import urllib.parse
+    return "https://app.plex.tv/desktop/#!/search?query=" + urllib.parse.quote(show)
+
+
+async def send(title, detail="", imdb_id=None, show=None):
+    link = _plex_link(show)
+    text = f"📥 {title}" + (f"\n{detail}" if detail else "") + (f"\n▶ Open in Plex: {link}" if link else "")
+    poster = ""
+    if imdb_id:
+        try:
+            from . import tmdb
+            poster = (await tmdb.art(imdb_id, show or "")).get("poster", "")
+        except Exception:
+            poster = ""
     await _webhook(text)
-    await _telegram(text)
+    await _telegram(text, poster)
 
 
 async def test():
+    # build a representative rich test (poster + Plex link) from the first mapped channel
+    imdb = show = None
+    try:
+        from . import db
+        with db.conn() as c:
+            r = c.execute("SELECT imdb_id, imdb_title, title FROM channels "
+                          "WHERE imdb_id IS NOT NULL AND imdb_id <> '' LIMIT 1").fetchone()
+        if r:
+            imdb, show = r["imdb_id"], (r["imdb_title"] or r["title"])
+    except Exception:
+        pass
+    poster = ""
+    if imdb:
+        try:
+            from . import tmdb
+            poster = (await tmdb.art(imdb, show or "")).get("poster", "")
+        except Exception:
+            poster = ""
+    link = _plex_link(show)
+    text = "✅ Telearr test notification" + (f"\n▶ Open in Plex: {link}" if link else "")
     results, ok = [], True
-    w = await _webhook("✅ Telearr test notification")
+    w = await _webhook(text)
     if w is not None:
         results.append("Webhook " + ("✓" if w else "✗"))
         ok = ok and w
-    t = await _telegram("✅ Telearr test — notifications are working.")
+    t = await _telegram(text, poster)
     if t is not None:
         results.append("Telegram Saved Messages " + ("✓" if t else "✗"))
         ok = ok and t
