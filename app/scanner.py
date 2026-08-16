@@ -104,12 +104,35 @@ def _resolve_path(channel, msg, fn):
                            info.get("episode") or 0, fn, ep_title)
 
 
-def _already_have(cid, gk, size) -> bool:
+def _already_have(channel, gk, size) -> bool:
+    """True if this episode (group_key) is already grabbed for this SHOW.
+
+    When a channel is mapped to a title (imdb_id/imdb_title), dedup spans every
+    channel sharing that mapping — so adding a second source channel for the same
+    show never re-downloads episodes another source already has. Unmapped
+    channels fall back to per-channel dedup."""
+    imdb_id = (channel["imdb_id"] or "").strip()
+    imdb_title = (channel["imdb_title"] or "").strip()
+    conds, args = [], []
+    if imdb_id:
+        conds.append("ch.imdb_id=?")
+        args.append(imdb_id)
+    if imdb_title:
+        conds.append("ch.imdb_title=?")
+        args.append(imdb_title)
     with db.conn() as c:
-        row = c.execute(
-            """SELECT status,file_size FROM downloads
-               WHERE channel_id=? AND group_key=? ORDER BY file_size DESC LIMIT 1""",
-            (cid, gk)).fetchone()
+        if conds:
+            args.append(gk)
+            row = c.execute(
+                f"""SELECT d.status, d.file_size FROM downloads d
+                    JOIN channels ch ON ch.id = d.channel_id
+                    WHERE ({' OR '.join(conds)}) AND d.group_key=?
+                    ORDER BY d.file_size DESC LIMIT 1""", args).fetchone()
+        else:
+            row = c.execute(
+                """SELECT status, file_size FROM downloads
+                   WHERE channel_id=? AND group_key=? ORDER BY file_size DESC LIMIT 1""",
+                (channel["id"], gk)).fetchone()
     return bool(row and row["status"] in ("completed", "downloading", "queued")
                 and row["file_size"] >= size)
 
@@ -179,7 +202,7 @@ async def scan_channel(client, channel):
     best, max_seen = await _iter_best(client, channel["chat_id"], limit=80, stop_at=last)
     for gk, (msg, size, fn) in best.items():
         _record_release(channel, msg, size, fn, gk)
-        if not _already_have(cid, gk, size):
+        if not _already_have(channel, gk, size):
             await _enqueue(client, channel, msg, size, fn, gk)
     with db.conn() as c:
         c.execute("UPDATE channels SET last_scanned_at=?, last_message_id=? WHERE id=?",
@@ -192,7 +215,7 @@ async def backfill_channel(client, channel, full=True):
     queued = 0
     for gk, (msg, size, fn) in best.items():
         _record_release(channel, msg, size, fn, gk)
-        if _already_have(cid, gk, size):
+        if _already_have(channel, gk, size):
             continue
         await _enqueue(client, channel, msg, size, fn, gk)
         queued += 1
