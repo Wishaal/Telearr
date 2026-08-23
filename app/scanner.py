@@ -243,6 +243,25 @@ async def _run_download(client, channel_id, msg, save_path, gk):
         _inflight.add(key)
     try:
         async with _sem_current():
+            # If the finished file is already on disk — fully downloaded but not
+            # finalized before a crash/restart, or grabbed by a sibling source —
+            # mark it complete instead of re-downloading (which previously looped
+            # forever, re-writing a full .tmp and stalling at the finalize step).
+            doc = msg.document or msg.video
+            fsize = doc.size if doc else 0
+            if fsize and os.path.exists(save_path) and os.path.getsize(save_path) >= fsize * 0.98:
+                tmp = save_path + ".tmp"
+                if os.path.exists(tmp):
+                    try:
+                        os.remove(tmp)
+                    except OSError:
+                        pass
+                with db.conn() as c:
+                    c.execute("""UPDATE downloads SET status='completed', progress=1.0, speed_mbs=0,
+                                 finished_at=? WHERE channel_id=? AND message_id=?""",
+                              (int(time.time()), channel_id, msg.id))
+                db.log("INFO", f"Already on disk — finalized {os.path.basename(save_path)}", channel_id=channel_id)
+                return
             with db.conn() as c:
                 c.execute("""UPDATE downloads SET status='downloading', started_at=?
                              WHERE channel_id=? AND message_id=?""",
