@@ -17,6 +17,12 @@ import logging
 from telethon.tl.functions.upload import GetFileRequest
 from telethon.tl.types import InputDocumentFileLocation
 from telethon.errors import FloodWaitError, FileReferenceExpiredError
+try:
+    # Telethon ≥1.38 raises a distinct error for the "non-premium accounts" flood
+    # wait; it is NOT a subclass of FloodWaitError, so it must be caught explicitly.
+    from telethon.errors import FloodPremiumWaitError
+except ImportError:  # older Telethon: alias so the except clause still compiles
+    FloodPremiumWaitError = FloodWaitError
 
 from . import settings
 from .config import (DL_WORKERS, DL_CHUNK_MB, MIN_FREE_SPACE_GB, OTHER_DIR,
@@ -72,9 +78,9 @@ async def _worker(client, sender, location, fd, parts, part_size, file_size,
             try:
                 res = await sender.send(GetFileRequest(location, offset=offset, limit=part_size))
                 break
-            except FloodWaitError as e:
+            except (FloodWaitError, FloodPremiumWaitError) as e:
                 _flood_until = time.time() + e.seconds
-                log.warning("FloodWait %ss", e.seconds)
+                log.warning("FloodWait %ss — pausing senders, will retry", e.seconds)
             except FileReferenceExpiredError:
                 location = await refresh()   # re-resolve a fresh file_reference
         data = res.bytes[:limit]
