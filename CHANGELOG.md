@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.3.1 — Download reliability (2026-08-16)
+- **Fast downloads no longer crawl or stall.** The parallel downloader caught
+  `FloodWaitError` but not Telethon's separate `FloodPremiumWaitError` (the
+  "a wait of N seconds is required in non-premium accounts" throttle, which is
+  not a subclass). On non-premium accounts that error escaped, killed the fast
+  path near the end, and dropped every download to the ~1.4 MB/s sequential
+  fallback — which, if interrupted, never finished. The worker now absorbs both
+  flood errors (brief pause + retry), so downloads complete on the fast path
+  (~10 MB/s).
+- **Crash-recovery for finished files.** If a file is already fully on disk
+  (e.g. completed but not finalized before a restart, or grabbed by a sibling
+  source), `_run_download` finalizes it instead of re-downloading — no more
+  rows stuck at "downloading" holding the queue slot.
+
 ## 2.3.0 — Multi-source shows, PWA & mobile polish (2026-08-16)
 
 ### Multi-source shows

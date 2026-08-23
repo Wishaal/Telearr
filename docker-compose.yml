@@ -1,7 +1,7 @@
 services:
   telearr:
     build: .
-    image: telearr:2.3.0
+    image: telearr:2.3.1
     container_name: telearr
     restart: unless-stopped
     env_file: .env
