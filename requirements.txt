@@ -1,5 +1,5 @@
 # Pinned for reproducibility. Bump deliberately, rebuild the image, test.
-telethon==1.43.0          # MTProto client; session format stable across 1.4x
+telethon==1.44.0          # MTProto client; session format stable across 1.4x
 cryptg==0.5.2       # C/AES-NI backend — the big download-speed win
 fastapi==0.117.1
 uvicorn[standard]==0.32.1
