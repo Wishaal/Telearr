@@ -27,6 +27,7 @@ _sem_limit = MAX_CONCURRENT_DOWNLOADS
 _task_registry = {}                     # download_id -> asyncio.Task
 _bg_tasks = set()                       # strong refs so backfill isn't GC'd
 _shutting_down = False                  # set on graceful shutdown
+MAX_DOWNLOAD_RETRIES = 3                 # auto-retry a failed download this many times
 
 
 def begin_shutdown():
@@ -196,6 +197,34 @@ async def _enqueue(client, channel, msg, size, fn, gk):
     _spawn(_run_download(client, cid, msg, save_path, gk))
 
 
+async def _retry_failed(client, channel):
+    """Re-queue this channel's failed downloads (transient drive/network blips)
+    up to MAX_DOWNLOAD_RETRIES. _run_download finalizes any that are already on
+    disk instead of re-downloading."""
+    cid = channel["id"]
+    with db.conn() as c:
+        rows = c.execute(
+            "SELECT id, message_id, save_path, group_key, file_name, "
+            "COALESCE(retry_count,0) AS rc FROM downloads "
+            "WHERE channel_id=? AND status='failed' AND COALESCE(retry_count,0) < ?",
+            (cid, MAX_DOWNLOAD_RETRIES)).fetchall()
+    for r in rows:
+        try:
+            msg = await client.get_messages(channel["chat_id"], ids=r["message_id"])
+        except Exception as e:
+            db.log("WARN", f"Auto-retry: could not fetch msg {r['message_id']}: {e}", channel_id=cid)
+            continue
+        if not msg:
+            with db.conn() as c:
+                c.execute("UPDATE downloads SET status='failed', error='message gone' WHERE id=?", (r["id"],))
+            continue
+        with db.conn() as c:
+            c.execute("UPDATE downloads SET status='queued', progress=0, speed_mbs=0, error=NULL, "
+                      "retry_count=COALESCE(retry_count,0)+1 WHERE id=?", (r["id"],))
+        db.log("INFO", f"Auto-retry {r['rc'] + 1}/{MAX_DOWNLOAD_RETRIES}: {r['file_name']}", channel_id=cid)
+        _spawn(_run_download(client, cid, msg, r["save_path"], r["group_key"]))
+
+
 async def scan_channel(client, channel):
     cid = channel["id"]
     last = channel["last_message_id"] or 0
@@ -204,6 +233,7 @@ async def scan_channel(client, channel):
         _record_release(channel, msg, size, fn, gk)
         if not _already_have(channel, gk, size):
             await _enqueue(client, channel, msg, size, fn, gk)
+    await _retry_failed(client, channel)   # recover transient download failures
     with db.conn() as c:
         c.execute("UPDATE channels SET last_scanned_at=?, last_message_id=? WHERE id=?",
                   (int(time.time()), max_seen, cid))

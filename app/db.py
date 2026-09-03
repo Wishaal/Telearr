@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS downloads (
   started_at INTEGER,
   finished_at INTEGER,
   created_at INTEGER NOT NULL,
+  retry_count INTEGER DEFAULT 0,
   UNIQUE(channel_id, message_id)
 );
 CREATE TABLE IF NOT EXISTS imdb_candidates (
@@ -109,6 +110,11 @@ def conn():
 def init():
     with conn() as c:
         c.executescript(SCHEMA)
+        # Lightweight migrations: CREATE TABLE IF NOT EXISTS won't add new columns
+        # to an existing table, so add them explicitly when missing.
+        cols = {r[1] for r in c.execute("PRAGMA table_info(downloads)")}
+        if "retry_count" not in cols:
+            c.execute("ALTER TABLE downloads ADD COLUMN retry_count INTEGER DEFAULT 0")
         c.execute("PRAGMA wal_autocheckpoint=1000;")
         c.execute("PRAGMA wal_checkpoint(TRUNCATE);")  # shrink bloated WAL on boot
     _logger.info("db initialised at %s", DB_PATH)

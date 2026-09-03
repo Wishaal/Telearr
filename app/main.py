@@ -433,8 +433,8 @@ async def _single_action(action: str, dl_id: int):
         msg = await client.get_messages(row["chat_id"], ids=row["message_id"])
         if msg:
             with db.conn() as c:
-                c.execute("UPDATE downloads SET status='queued', error=NULL, progress=0 "
-                          "WHERE id=?", (dl_id,))
+                c.execute("UPDATE downloads SET status='queued', error=NULL, progress=0, "
+                          "retry_count=0 WHERE id=?", (dl_id,))
             scanner._spawn(scanner._run_download(client, row["channel_id"], msg,
                                                  row["save_path"], row["group_key"]))
 

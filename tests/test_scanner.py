@@ -55,3 +55,32 @@ def test_larger_replacement_not_deduped(fresh_db):
     _add_completed(db, a["id"], "S01E01", size=1000)
     # a bigger file for the same episode is allowed through (quality upgrade)
     assert scanner._already_have(b, "S01E01", 5000) is False
+
+
+def test_retry_failed_requeues_and_bounds(fresh_db, monkeypatch):
+    import asyncio
+    from app import db, scanner
+
+    ch = _add_channel(db, -1, "A", imdb_id="tt1")
+    with db.conn() as c:
+        # one retryable failure (rc=0), one exhausted (rc=MAX)
+        c.execute("INSERT INTO downloads (channel_id,message_id,group_key,file_name,file_size,"
+                  "save_path,status,created_at,retry_count) VALUES (?,?,?,?,?,?,?,?,?)",
+                  (ch["id"], 5, "S01E01", "a.mp4", 1000, "/m/a.mp4", "failed", 0, 0))
+        c.execute("INSERT INTO downloads (channel_id,message_id,group_key,file_name,file_size,"
+                  "save_path,status,created_at,retry_count) VALUES (?,?,?,?,?,?,?,?,?)",
+                  (ch["id"], 6, "S01E02", "b.mp4", 1000, "/m/b.mp4", "failed", 0,
+                   scanner.MAX_DOWNLOAD_RETRIES))
+
+    class FakeClient:
+        async def get_messages(self, chat, ids=None):
+            return object()  # truthy message
+
+    monkeypatch.setattr(scanner, "_spawn", lambda coro: coro.close())
+    asyncio.run(scanner._retry_failed(FakeClient(), ch))
+
+    with db.conn() as c:
+        a = c.execute("SELECT status, retry_count FROM downloads WHERE message_id=5").fetchone()
+        b = c.execute("SELECT status, retry_count FROM downloads WHERE message_id=6").fetchone()
+    assert a["status"] == "queued" and a["retry_count"] == 1   # retried, counter bumped
+    assert b["status"] == "failed" and b["retry_count"] == scanner.MAX_DOWNLOAD_RETRIES  # exhausted
