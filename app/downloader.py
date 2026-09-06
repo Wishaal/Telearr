@@ -114,13 +114,19 @@ async def _fast_download(client, message, tmp_path, progress_cb):
 
     location = _location(doc)
 
-    # preallocate contiguously to avoid HDD fragmentation and per-write extends
-    fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT, 0o644)
+    # preallocate contiguously to avoid HDD fragmentation and per-write extends.
+    # Run it in a thread — on a slow/FUSE mount (e.g. ntfs-3g) fallocate/ftruncate
+    # can take seconds and would otherwise block the single event loop (freezing
+    # the whole app) while it zero-fills.
+    loop = asyncio.get_event_loop()
+    fd = await loop.run_in_executor(None, os.open, tmp_path, os.O_WRONLY | os.O_CREAT, 0o644)
     try:
-        try:
-            os.posix_fallocate(fd, 0, file_size)
-        except (AttributeError, OSError):
-            os.ftruncate(fd, file_size)
+        def _preallocate():
+            try:
+                os.posix_fallocate(fd, 0, file_size)
+            except (AttributeError, OSError):
+                os.ftruncate(fd, file_size)
+        await loop.run_in_executor(None, _preallocate)
 
         done = {"n": 0}
         start = time.monotonic()
