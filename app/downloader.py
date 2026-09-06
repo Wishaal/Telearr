@@ -156,7 +156,14 @@ async def _fast_download(client, message, tmp_path, progress_cb):
 
         borrow = getattr(client, "_borrow_exported_sender")
         ret = getattr(client, "_return_exported_sender")
-        senders = [await borrow(dc_id) for _ in assignments]
+        # Borrowing/exporting a sender to a remote DC can hang indefinitely
+        # (seen with DC5); bound it so the fast path bails to the sequential
+        # fallback instead of freezing the download forever at 0%.
+        try:
+            senders = [await asyncio.wait_for(borrow(dc_id), timeout=PART_TIMEOUT)
+                       for _ in assignments]
+        except asyncio.TimeoutError:
+            raise RuntimeError(f"sender export to DC{dc_id} timed out")
         rep = asyncio.create_task(reporter())
         try:
             await asyncio.gather(*[
