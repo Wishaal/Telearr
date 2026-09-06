@@ -32,6 +32,8 @@ log = logging.getLogger("downloader")
 
 _flood_until = 0.0          # global flood-wait gate shared by all senders
 PART = DL_CHUNK_MB * 1024 * 1024   # 1 MB — Telegram's max GetFile limit
+PART_TIMEOUT = 45           # a single 1 MB part must arrive within this many seconds
+MAX_PART_TIMEOUTS = 3       # …retried this many times before the fast path bails to fallback
 
 
 def has_enough_space(path: str, required: int, buffer_gb=None) -> bool:
@@ -73,11 +75,21 @@ async def _worker(client, sender, location, fd, parts, part_size, file_size,
     for idx in parts:
         offset = idx * part_size
         limit = min(part_size, file_size - offset)
+        timeouts = 0
         while True:
             await _flood_gate()
             try:
-                res = await sender.send(GetFileRequest(location, offset=offset, limit=part_size))
+                # Bound each part fetch — a desynced/hung borrowed sender would
+                # otherwise stall the whole download forever with no progress.
+                res = await asyncio.wait_for(
+                    sender.send(GetFileRequest(location, offset=offset, limit=part_size)),
+                    timeout=PART_TIMEOUT)
                 break
+            except asyncio.TimeoutError:
+                timeouts += 1
+                log.warning("part %d stalled >%ss (try %d/%d)", idx, PART_TIMEOUT, timeouts, MAX_PART_TIMEOUTS)
+                if timeouts >= MAX_PART_TIMEOUTS:
+                    raise RuntimeError(f"download stalled: part {idx} timed out {timeouts}x")
             except (FloodWaitError, FloodPremiumWaitError) as e:
                 _flood_until = time.time() + e.seconds
                 log.warning("FloodWait %ss — pausing senders, will retry", e.seconds)
