@@ -1,13 +1,15 @@
 # app/tg.py — single shared Telethon client + account helpers.
 import re
 import time
+import asyncio
 import logging
+from urllib.parse import urlparse
 from telethon import TelegramClient, utils
 from telethon.errors import SessionPasswordNeededError
 from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest, CheckChatInviteRequest
 from . import settings
-from .config import API_ID, API_HASH, SESSION_PATH
+from .config import API_ID, API_HASH, SESSION_PATH, PROXY
 
 log = logging.getLogger("tg")
 _client: TelegramClient | None = None
@@ -21,6 +23,57 @@ def _api_creds():
             settings.get("tg_api_hash", "") or API_HASH)
 
 
+def _proxy_url() -> str:
+    # DB setting (from the UI) wins over the TELEARR_PROXY env default.
+    return (settings.get("tg_proxy", "") or PROXY or "").strip()
+
+
+def proxy_display() -> str:
+    """Human-readable proxy summary with any credentials stripped (for the UI)."""
+    url = _proxy_url()
+    if not url:
+        return ""
+    try:
+        u = urlparse(url)
+        return f"{u.scheme}://{u.hostname}:{u.port}" if u.hostname else url
+    except Exception:
+        return "(set)"
+
+
+def _build_proxy_kwargs() -> dict:
+    """Translate the proxy URL into TelegramClient kwargs. Supports SOCKS5/4 and
+    HTTP (via python-socks) and Telegram's own MTProxy. Returns {} when unset or
+    unparseable, so a bad value degrades to a direct connection rather than
+    breaking the client."""
+    url = _proxy_url()
+    if not url:
+        return {}
+    try:
+        u = urlparse(url)
+        scheme = (u.scheme or "").lower()
+        host, port = u.hostname, u.port
+        if not host or not port:
+            log.warning("proxy URL missing host/port: %s", proxy_display())
+            return {}
+        if scheme in ("socks5", "socks4", "http"):
+            conf = {"proxy_type": scheme, "addr": host, "port": port, "rdns": True}
+            if u.username:
+                conf["username"] = u.username
+            if u.password:
+                conf["password"] = u.password
+            return {"proxy": conf}
+        if scheme in ("mtproxy", "mtproto"):
+            # mtproxy://<secret>@host:port — secret carried in the userinfo slot
+            secret = u.username or (u.password or "")
+            from telethon import connection as _conn
+            return {"proxy": (host, port, secret),
+                    "connection": _conn.ConnectionTcpMTProxyRandomizedIntermediate}
+        log.warning("unsupported proxy scheme %r — ignoring", scheme)
+    except Exception as e:
+        log.warning("bad proxy URL: %s", e)
+    return {}
+
+
 def get_client() -> TelegramClient:
     global _client
     if _client is None:
@@ -31,8 +84,24 @@ def get_client() -> TelegramClient:
             retry_delay=2,
             auto_reconnect=True,
             flood_sleep_threshold=60,
+            **_build_proxy_kwargs(),
         )
     return _client
+
+
+async def set_proxy(url):
+    """Persist a proxy URL, rebuild the client through it, and test-connect."""
+    settings.set("tg_proxy", (url or "").strip())
+    await reset_client()
+    if not (url or "").strip():
+        return {"ok": True, "proxy": ""}
+    try:
+        c = get_client()
+        await asyncio.wait_for(c.connect(), timeout=20)
+        authed = await c.is_user_authorized()
+        return {"ok": True, "proxy": proxy_display(), "authorized": authed}
+    except Exception as e:
+        return {"error": f"Could not connect through proxy: {e}"}
 
 
 async def reset_client():

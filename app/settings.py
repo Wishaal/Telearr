@@ -69,6 +69,7 @@ def public() -> dict:
         "notify_webhook": get("notify_webhook", DEFAULTS["notify_webhook"]),
         "notify_telegram": get_bool("notify_telegram", False),
         "paused": get_bool("paused", False),
+        "proxy_set": bool(get("tg_proxy", "")),
     }
 
 

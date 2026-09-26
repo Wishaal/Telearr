@@ -635,12 +635,28 @@ export function viewSettings(ctx) {
       h("div", { class: "set-actions" }, tgAuth.authorized
         ? h("button", { class: "btn ghost sm", onClick: async () => { if (confirm("Disconnect Telegram? Downloads stop until you reconnect.")) { await api("/api/telegram/auth/logout", { method: "POST" }); toast("Telegram disconnected", "ok"); ctx.rerender(); } } }, "Disconnect")
         : h("button", { class: "btn primary sm", onClick: () => openTelegramConnect(ctx) }, h("span", { html: icon("telegram") }), "Connect Telegram")));
+
+    const proxyOut = h("span", { class: "test-out" });
+    const proxyInp = inp("set-proxy", "", "text");
+    proxyInp.placeholder = s.proxy_set ? "•••• (a proxy is set — enter a new URL to replace)" : "socks5://user:pass@host:port";
+    const proxyc = card("Proxy / VPN",
+      h("div", { class: "muted small", style: "margin-bottom:10px" }, "Route Telegram through a proxy when your ISP throttles or blocks Telegram data centers (fixes downloads that stall/fail on a specific DC). Supports socks5://, socks4://, http:// and mtproxy://<secret>@host:port."),
+      row("Proxy URL" + (s.proxy_set ? " (set)" : ""), proxyInp),
+      h("div", { class: "set-actions" },
+        h("button", { class: "btn primary sm", onClick: async () => {
+          proxyOut.textContent = "Connecting through proxy…"; proxyOut.style.color = "var(--muted)";
+          const r = await jpost("/api/telegram/proxy", { proxy: proxyInp.value });
+          if (r) { const ok = !r.error; proxyOut.textContent = ok ? ("Connected via " + (r.proxy || "direct")) : r.error; proxyOut.style.color = `var(--${ok ? "ok" : "err"})`; if (ok) proxyInp.value = ""; }
+        } }, "Save & test"),
+        s.proxy_set ? h("button", { class: "btn ghost sm", onClick: async () => { const r = await jpost("/api/telegram/proxy", { proxy: "" }); if (r && !r.error) { toast("Proxy cleared", "ok"); ctx.rerender(); } } }, "Clear") : null,
+        proxyOut));
+
     // Grouped into tabs (was one long column). Cards are built once; switching
     // tabs just re-parents them, so unsaved input and handlers survive.
     const TABS = [
       ["account", "Account", [account, appearance]],
       ["downloads", "Downloads", [perf, paths]],
-      ["integrations", "Integrations", [tgCard, plex, tmdbc, notify, arr]],
+      ["integrations", "Integrations", [tgCard, proxyc, plex, tmdbc, notify, arr]],
     ];
     const tabsRow = h("div", { class: "tabs" });
     const body = h("div", { class: "settings-cols" });

@@ -627,6 +627,19 @@ async def api_tg_logout(user=Depends(auth.require_user)):
     return await tg.logout()
 
 
+@app.get("/api/telegram/proxy")
+async def api_tg_get_proxy(user=Depends(auth.require_user)):
+    return {"proxy": tg.proxy_display()}
+
+
+@app.post("/api/telegram/proxy")
+async def api_tg_set_proxy(payload: dict, user=Depends(auth.require_user)):
+    r = await tg.set_proxy(payload.get("proxy", ""))
+    if r.get("ok"):
+        scanner.start_background()   # reconnected through the proxy — resume scanning
+    return r
+
+
 # ── *arr integration: Newznab indexer ─────────────────────────────────
 def _base_url(request: Request) -> str:
     return str(request.base_url).rstrip("/")

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.3.3 — Proxy / VPN support (2026-09-26)
+- **Route Telegram through a proxy/VPN** to get past ISP throttling or blocking of
+  Telegram data centers (the cause of downloads that stall on one DC while the
+  main connection is fine). Configure from Settings → Integrations → Proxy / VPN
+  or the `TELEARR_PROXY` env var. Supports `socks5://`, `socks4://`, `http://`
+  (via python-socks) and Telegram's own `mtproxy://<secret>@host:port`.
+- Saving a proxy reconnects the client through it and reports success/failure; a
+  bad or unreachable proxy safely degrades to a direct connection. Credentials
+  are never shown back in the UI. Only Telegram traffic is proxied.
+
 ## 2.3.2 — Download hang & app-freeze fixes (2026-09-26)
 - **Scan no longer freezes the whole app.** File preallocation (and the file
   open) ran synchronously on the single event loop; on a slow/FUSE mount

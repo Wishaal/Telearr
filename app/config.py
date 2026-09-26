@@ -52,6 +52,13 @@ PLEX_URL = os.getenv("PLEX_URL", "").rstrip("/")        # e.g. http://plex_local
 PLEX_TOKEN = os.getenv("PLEX_TOKEN", "")
 NOTIFY_WEBHOOK = os.getenv("TELEARR_NOTIFY_WEBHOOK", "") # Discord/Slack/generic JSON
 
+# ── Proxy / VPN for the Telegram client (optional) ─────────────────────
+# Route MTProto through a proxy when the ISP shapes/blocks Telegram DC IPs.
+# Formats: socks5://[user:pass@]host:port · socks4://host:port ·
+#          http://[user:pass@]host:port · mtproxy://<secret>@host:port
+# A DB setting (tg_proxy, set from the UI) overrides this env default.
+PROXY = os.getenv("TELEARR_PROXY", "")
+
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(LOG_DIR, exist_ok=True)
 

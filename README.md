@@ -199,6 +199,28 @@ Caddy terminates TLS and forwards to Telearr; the app already reads
 open `https://telearr.example.com` and use your browser's **Install app** action
 (Chrome/Edge address-bar icon, or iOS Share → Add to Home Screen).
 
+## Proxy / VPN (when Telegram is throttled)
+
+If downloads stall or fail on a specific Telegram data center — TCP connects but
+the transfer dies, with no FloodWaits — your ISP is likely shaping Telegram DC
+traffic. Route the Telegram client through a proxy to change the path:
+
+- **In the app:** Settings → Integrations → **Proxy / VPN**, enter a URL, and
+  **Save & test** (it reconnects through the proxy and reports success/failure).
+- **Or via env:** set `TELEARR_PROXY` in `.env`.
+
+Supported URLs:
+
+```
+socks5://[user:pass@]host:port     # e.g. a WireGuard/OpenVPN box running a SOCKS proxy
+socks4://host:port
+http://[user:pass@]host:port
+mtproxy://<secret>@host:port       # Telegram's own MTProxy
+```
+
+Only Telegram traffic goes through the proxy — the web UI and *arr integration
+are unaffected. A bad/unreachable proxy safely falls back to a direct connection.
+
 ## Configuration
 
 Telearr is configured in two complementary places.
