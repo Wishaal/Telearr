@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.3.2 — Download hang & app-freeze fixes (2026-09-26)
+- **Scan no longer freezes the whole app.** File preallocation (and the file
+  open) ran synchronously on the single event loop; on a slow/FUSE mount
+  (ntfs-3g) zero-filling a multi-GB file blocked every request — including
+  `/healthz` — for seconds whenever a scan queued a large download. Preallocation
+  now runs in a thread executor.
+- **Downloads can no longer stall forever.** Each 1 MB part fetch is bounded by a
+  timeout (`PART_TIMEOUT`), and the sender-export ("borrow") to a remote DC is
+  bounded too — a hung/desynced sender (seen with DC5) now aborts and falls back
+  to the sequential downloader instead of freezing at 0% holding the queue slot.
+- **Auto-retry for failed downloads** — a channel's failed grabs are re-queued on
+  each scan up to 3 times, so a transient drive/network blip recovers on its own;
+  a file already fully on disk is finalized instead of re-downloaded.
+- **Non-premium FloodWait handled** — the fast downloader now catches
+  `FloodPremiumWaitError` so it stays on the ~10 MB/s fast path instead of
+  dropping to the slow sequential fallback.
+
 ## 2.3.1 — Download reliability (2026-08-16)
 - **Fast downloads no longer crawl or stall.** The parallel downloader caught
   `FloodWaitError` but not Telethon's separate `FloodPremiumWaitError` (the
